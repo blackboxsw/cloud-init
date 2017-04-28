@@ -4,6 +4,10 @@ node {
     stage ('Checkout') {
         checkout scm
     }
+    stage ('Install dependencies') {
+        sh 'apt-get update -y'
+        sh 'apt-get install devscripts -y'
+    }
     stage ('Build') {
         echo "Building branch: ${env.BRANCH_NAME}"
 	sh 'make deb'
