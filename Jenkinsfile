@@ -5,8 +5,8 @@ node {
         checkout scm
     }
     stage ('Install dependencies') {
-        sh 'apt-get update -y'
-        sh 'apt-get install devscripts -y'
+        sh 'sudo apt-get update -y'
+        sh 'sudo apt-get install devscripts -y'
     }
     stage ('Build') {
         echo "Building branch: ${env.BRANCH_NAME}"
