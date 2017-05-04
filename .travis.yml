@@ -1,4 +1,6 @@
 sudo: false
+notifications:
+  email: false
 language: python
 git:
     depth: 200
