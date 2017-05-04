@@ -1,19 +1,25 @@
-sudo: true
-before_install:
-    - sudo apt-get update -q
-    - test $TOXENV = py72 && \
-      sudo apt-get install -y python-dev libyaml-dev || true
-    - test $TOXENV = py3 && \
-      sudo apt-get install -y python3-dev libyaml-dev || true
+sudo: false
+language: python
 git:
     depth: 200
-language: python
+python:
+    - "2.7"
+    - "3.0"
 env:
+  matrix:
     - TOXENV=py27
+      addons:
+        apt:
+          packages:
+            python-dev libyaml-dev
     - TOXENV=py3
+      addons:
+        apt:
+          packages:
+            python3-dev libyaml-dev
     - TOXENV=flake8
     - TOXENV=tip-pycodestyle
     - TOXENV=tip-pyflakes
 install: pip install tox
 script:
-    - tox
+    - tox -e $TOXENV
