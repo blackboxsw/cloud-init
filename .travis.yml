@@ -16,6 +16,9 @@ matrix:
           packages:
            - python3-dev
            - libyaml-dev
+    - env: TOXENV=flake8
+    - env: TOXENV=tip-pycodestyle
+    - env: TOXENV=tip-pyflakes
 install: pip install tox
 script:
     - tox -e $TOXENV
