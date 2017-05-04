@@ -4,15 +4,13 @@ git:
     depth: 200
 matrix:
   include:
-    - python: "2.7"
-      env: TOXENV=py27
+    - env: TOXENV=py27
       addons:
         apt:
           packages:
            - python-dev
            - libyaml-dev
-    - python: "3"
-      env: TOXENV=py3
+    - env: TOXENV=py3
       addons:
         apt:
           packages:
