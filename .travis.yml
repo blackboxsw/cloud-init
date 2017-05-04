@@ -2,24 +2,24 @@ sudo: false
 language: python
 git:
     depth: 200
-python:
-    - "2.7"
-    - "3.0"
 env:
   matrix:
-    - TOXENV=py27
-      addons:
-        apt:
-          packages:
-            python-dev libyaml-dev
-    - TOXENV=py3
-      addons:
-        apt:
-          packages:
-            python3-dev libyaml-dev
-    - TOXENV=flake8
-    - TOXENV=tip-pycodestyle
-    - TOXENV=tip-pyflakes
+    include:
+      - TOXENV=py27
+        addons:
+          apt:
+            packages:
+             - python-dev
+             - libyaml-dev
+      - TOXENV=py3
+        addons:
+          apt:
+            packages:
+             - python-dev
+             - libyaml-dev
+      - TOXENV=flake8
+      - TOXENV=tip-pycodestyle
+      - TOXENV=tip-pyflakes
 install: pip install tox
 script:
     - tox -e $TOXENV
