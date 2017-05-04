@@ -12,7 +12,7 @@ matrix:
            - python-dev
            - libyaml-dev
     - python: "3.0"
-      TOXENV=py3
+      env: TOXENV=py3
       addons:
         apt:
           packages:
