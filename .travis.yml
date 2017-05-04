@@ -1,10 +1,10 @@
 sudo: true
 before_install:
-    - test $TOXENV = py72 && DEPS="python-dev libyaml-dev" || true
-    - test $TOXENV = py3 && DEPS="python3-dev libyaml-dev" || true
     - sudo apt-get update -q
-    - test -n "$DEPS" && sudo apt-get update -q && \
-      sudo apt-get install -y $DEPS || true
+    - test $TOXENV = py72 && \
+      sudo apt-get install -y python-dev libyaml-dev || true
+    - test $TOXENV = py3 && \
+      sudo apt-get install -y python3-dev libyaml-dev || true
 git:
     depth: 200
 language: python
