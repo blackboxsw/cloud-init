@@ -4,7 +4,7 @@
 def setBuildStatus(context, message, state) {
     step([
         $class: "GitHubCommitStatusSetter",
-        reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/blackboxsw/cloud-init"],
+       // reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/blackboxsw/cloud-init"],
         contextSource: [$class: "ManuallyEnteredCommitContextSource", context: context],
         errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
         statusResultSource: [$class: "ConditionalStatusResultSource", results: [[
