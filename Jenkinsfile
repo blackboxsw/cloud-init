@@ -12,8 +12,13 @@ node {
         echo "Building branch: ${env.BRANCH_NAME}"
 	sh 'make deb'
     }
+    stage ('Flake') {
+        echo 'Running flake'
+        sh 'tox -e flake8'
+    }
     stage ('Test') {
         echo 'Testing. py27'
+        sh 'tox -e py27'
     }
     stage ('Deploying') {
         echo 'Deploying...'
