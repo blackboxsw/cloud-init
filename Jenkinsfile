@@ -14,7 +14,10 @@ def setBuildStatus(context, message, state) {
 
 node {
     stage ('Checkout') {
+        context = "jenkins/checkout"
+        setBuildStatus(context, "pending", "PENDING")
         checkout scm
+        setBuildStatus(context, "pending", "SUCCESS")
     }
     stage ('Build') {
         sh 'sudo apt-get update -y'
