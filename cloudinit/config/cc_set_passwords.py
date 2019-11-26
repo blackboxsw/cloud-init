@@ -244,7 +244,9 @@ def chpasswd(distro, plist_in, hashed=False):
             u, p = pentry.split(":")
             distro.set_passwd(u, p, hashed=hashed)
     else:
-        cmd = ['chpasswd'] + ['-e'] if hashed else []
+        cmd = ['chpasswd']
+        if hashed:
+            cmd += ['-e']
         util.subp(cmd, plist_in)
 
 # vi: ts=4 expandtab
