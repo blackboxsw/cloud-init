@@ -1,0 +1,24 @@
+name: Verify Contributor License Agreement
+
+on: [push, pull_request]
+
+jobs:
+  cla-validate:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: |
+        echo "::set-env name=CLA_SIGNED::$(grep ${{ github.actor }} ./tools/.lp-to-git-user)"
+    - if: env.CLA_SIGNED
+      name: Contributor License IS signed
+      uses: actions/labeler@v2
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: .github/labeler.yml
+    - if: env.CLA_SIGNED == ''
+      name: Contributor License IS NOT signed
+      uses: actions/labeler@v2
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        configuration-path: .github/no-cla-labeler.yml
