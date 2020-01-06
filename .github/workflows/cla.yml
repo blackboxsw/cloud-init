@@ -1,0 +1,20 @@
+name: Verify Contributor License Agreement
+
+on: [pull_request]
+
+jobs:
+  cla-validate:
+
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: |
+        echo "::set-env name=CLA_SIGNED::$(grep ${{ github.actor }} ./tools/.lp-to-git-user && echo CLA signed || echo CLA not signed)"
+    - name: Add CLA label
+      run: |
+        # POST a new label to this issue
+        curl --request POST \
+        --url https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.number }}/labels \
+        --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+        --header 'content-type: application/json' \
+        --data '{"labels": ["CLA signed"]}'
