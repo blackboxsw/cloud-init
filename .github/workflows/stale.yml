@@ -1,8 +1,8 @@
 name: Mark and close stale pull requests
 
-on:
-  schedule:
-  - cron: "0 0 * * *"  # Daily @ 00:00
+on: [pull_request]
+#  schedule:
+#  - cron: "0 0 * * *"  # Daily @ 00:00
 
 jobs:
   stale:
