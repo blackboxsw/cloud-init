@@ -1,3 +1,10 @@
+cloud-init (20.1-10-g71af48df-0ubuntu4) UNRELEASED; urgency=medium
+
+  * cherry-pick 9efa64f5: HACKING.rst: reorganise/update CLA signature
+    info (#297)
+
+ -- Chad Smith <chad.smith@canonical.com>  Mon, 13 Apr 2020 10:53:31 -0600
+
 cloud-init (20.1-10-g71af48df-0ubuntu3) focal; urgency=medium
 
   * d/patches: redact openbsd netbsd from tests until new-upstream-snapshot
