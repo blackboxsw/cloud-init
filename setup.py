@@ -274,6 +274,7 @@ if not in_virtualenv():
 
 data_files = [
     (ETC + "/cloud", [render_tmpl("config/cloud.cfg.tmpl")]),
+    (ETC + "/cloud", ["config/cloud-init-schema-1.0.json"]),
     (ETC + "/cloud/cloud.cfg.d", glob("config/cloud.cfg.d/*")),
     (ETC + "/cloud/templates", glob("templates/*")),
     (

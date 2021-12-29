@@ -39,7 +39,7 @@ from cloudinit.settings import PER_INSTANCE, PER_ALWAYS, PER_ONCE, CLOUD_CONFIG
 
 from cloudinit import atomic_helper
 
-from cloudinit.config import cc_set_hostname
+from cloudinit.config import cc_set_hostname, schema
 from cloudinit import dhclient_hook
 
 
@@ -662,6 +662,9 @@ def main_single(name, args):
     # now that logging is setup and stdout redirected, send welcome
     welcome(name, msg=w_msg)
 
+    # Validate cloud-config schema
+    schema = schema.get_schema()
+    validate_cloudconfig_schema(cfg=init.cfg, schema=schema, strict=True)
     # Stage 5
     (which_ran, failures) = mods.run_single(mod_name, mod_args, mod_freq)
     if failures:

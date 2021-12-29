@@ -9,7 +9,7 @@
 from textwrap import dedent
 
 from cloudinit import util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
+from cloudinit.config.schema import get_meta_doc
 from cloudinit.settings import PER_INSTANCE
 
 frequency = PER_INSTANCE
@@ -52,25 +52,10 @@ meta = {
     ],
 }
 
-schema = {
-    "type": "object",
-    "properties": {
-        "apt_pipelining": {
-            "type": ["integer", "boolean", "string"],
-            "oneOf": [
-                {"type": "integer"},
-                {"type": "boolean"},
-                {"type": "string", "enum": ["none", "unchanged", "os"]},
-            ],
-        },
-    },
-}
-
-__doc__ = get_meta_doc(meta, schema)
+__doc__ = get_meta_doc(meta)
 
 
 def handle(_name, cfg, _cloud, log, _args):
-    validate_cloudconfig_schema(cfg, schema)
     apt_pipe_value = util.get_cfg_option_str(cfg, "apt_pipelining", "os")
     apt_pipe_value = cfg.get("apt_pipelining", "os")
     apt_pipe_value_s = str(apt_pipe_value).lower().strip()

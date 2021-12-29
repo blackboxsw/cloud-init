@@ -13,6 +13,7 @@ CFG_ENV_NAME = "CLOUD_CFG"
 
 # This is expected to be a yaml formatted file
 CLOUD_CONFIG = "/etc/cloud/cloud.cfg"
+SCHEMA_DIR = "/etc/cloud/schema/"
 
 RUN_CLOUD_CONFIG = "/run/cloud-init/cloud.cfg"
 

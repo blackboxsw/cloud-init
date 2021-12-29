@@ -8,7 +8,7 @@ import os
 from textwrap import dedent
 
 from cloudinit import subp, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
+from cloudinit.config.schema import get_meta_doc
 from cloudinit.settings import PER_INSTANCE
 
 DEFAULT_CONFIG = {
@@ -92,7 +92,7 @@ schema = {
     },
 }
 
-__doc__ = get_meta_doc(meta, schema)
+__doc__ = get_meta_doc(meta)
 
 
 def _distro_ca_certs_configs(distro_name):
@@ -200,8 +200,6 @@ def handle(name, cfg, cloud, log, _args):
             name,
         )
         return
-    validate_cloudconfig_schema(cfg, schema)
-
     ca_cert_cfg = cfg["ca-certs"]
     distro_cfg = _distro_ca_certs_configs(cloud.distro.name)
 

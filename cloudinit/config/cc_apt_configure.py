@@ -9,6 +9,7 @@
 """Apt Configure: Configure apt for the user."""
 
 import glob
+import json
 import os
 import pathlib
 import re
@@ -17,17 +18,16 @@ from cloudinit import gpg
 from cloudinit import log as logging
 from cloudinit import subp, templater, util
 from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
-from cloudinit.config.schemas.apt_configure import (
-    ADD_APT_REPO_MATCH,
-    meta,
-    schema,
-)
+from cloudinit.config.schemas.apt_configure import ADD_APT_REPO_MATCH, meta
 
 LOG = logging.getLogger(__name__)
 
 APT_LOCAL_KEYS = "/etc/apt/trusted.gpg"
 APT_TRUSTED_GPG_DIR = "/etc/apt/trusted.gpg.d/"
 CLOUD_INIT_GPG_DIR = "/etc/apt/cloud-init.gpg.d/"
+
+
+schema = json.loads(open("apt_configure.json").read())
 
 __doc__ = get_meta_doc(meta, schema)
 

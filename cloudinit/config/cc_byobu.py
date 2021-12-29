@@ -7,9 +7,10 @@
 # This file is part of cloud-init. See LICENSE file for license information.
 
 """Byobu: Enable/disable byobu system wide and for default user."""
+import json
 
 from cloudinit import subp, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
+from cloudinit.config.schema import get_meta_doc
 from cloudinit.distros import ug_util
 from cloudinit.settings import PER_INSTANCE
 
@@ -45,26 +46,7 @@ meta = {
     ],
 }
 
-schema = {
-    "type": "object",
-    "properties": {
-        "byobu_by_default": {
-            "type": "string",
-            "enum": [
-                "enable-system",
-                "enable-user",
-                "disable-system",
-                "disable-user",
-                "enable",
-                "disable",
-                "user",
-                "system",
-            ],
-        }
-    },
-}
-
-__doc__ = get_meta_doc(meta, schema)
+__doc__ = get_meta_doc(meta)
 
 
 def handle(name, cfg, cloud, log, args):
@@ -76,8 +58,6 @@ def handle(name, cfg, cloud, log, args):
     if not value:
         log.debug("Skipping module named %s, no 'byobu' values found", name)
         return
-    validate_cloudconfig_schema(cfg, schema)
-
     if value == "user" or value == "system":
         value = "enable-%s" % value
 
