@@ -6,31 +6,122 @@
 #
 # This file is part of cloud-init. See LICENSE file for license information.
 
-"""Apt Configure: Configure apt for the user."""
+"""APT Configure: Configure APT for the user."""
 
 import glob
 import json
 import os
 import pathlib
 import re
+from textwrap import dedent
 
 from cloudinit import gpg
 from cloudinit import log as logging
 from cloudinit import subp, templater, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
-from cloudinit.config.schemas.apt_configure import ADD_APT_REPO_MATCH, meta
+from cloudinit.config.schema import get_meta_doc
+from cloudinit.settings import PER_INSTANCE
+
+distros = ["ubuntu", "debian"]
 
 LOG = logging.getLogger(__name__)
+
 
 APT_LOCAL_KEYS = "/etc/apt/trusted.gpg"
 APT_TRUSTED_GPG_DIR = "/etc/apt/trusted.gpg.d/"
 CLOUD_INIT_GPG_DIR = "/etc/apt/cloud-init.gpg.d/"
 
+meta = {
+    "id": "cc_apt_configure",
+    "name": "APT Configure",
+    "title": "Configure APT for the user",
+    "description": dedent(
+        """\
+        This module handles both configuration of APT options and adding
+        source lists.  There are configuration options such as
+        ``apt_get_wrapper`` and ``apt_get_command`` that control how
+        cloud-init invokes apt-get. These configuration options are
+        handled on a per-distro basis, so consult documentation for
+        cloud-init's distro support for instructions on using
+        these config options.
 
-schema = json.loads(open("apt_configure.json").read())
+        .. note::
+            To ensure that APT configuration is valid yaml, any strings
+            containing special characters, especially ``:`` should be quoted.
 
-__doc__ = get_meta_doc(meta, schema)
+        .. note::
+            For more information about APT configuration, see the
+            ``Additional APT configuration`` example."""
+    ),
+    "distros": distros,
+    "examples": [
+        dedent(
+            """\
+        apt:
+          preserve_sources_list: false
+          disable_suites:
+            - $RELEASE-updates
+            - backports
+            - $RELEASE
+            - mysuite
+          primary:
+            - arches:
+                - amd64
+                - i386
+                - default
+              uri: 'http://us.archive.ubuntu.com/ubuntu'
+              search:
+                - 'http://cool.but-sometimes-unreachable.com/ubuntu'
+                - 'http://us.archive.ubuntu.com/ubuntu'
+              search_dns: false
+            - arches:
+                - s390x
+                - arm64
+              uri: 'http://archive-to-use-for-arm64.example.com/ubuntu'
 
+          security:
+            - arches:
+                - default
+              search_dns: true
+          sources_list: |
+              deb $MIRROR $RELEASE main restricted
+              deb-src $MIRROR $RELEASE main restricted
+              deb $PRIMARY $RELEASE universe restricted
+              deb $SECURITY $RELEASE-security multiverse
+          debconf_selections:
+              set1: the-package the-package/some-flag boolean true
+          conf: |
+              APT {
+                  Get {
+                      Assume-Yes 'true';
+                      Fix-Broken 'true';
+                  }
+              }
+          proxy: 'http://[[user][:pass]@]host[:port]/'
+          http_proxy: 'http://[[user][:pass]@]host[:port]/'
+          ftp_proxy: 'ftp://[[user][:pass]@]host[:port]/'
+          https_proxy: 'https://[[user][:pass]@]host[:port]/'
+          sources:
+              source1:
+                  keyid: 'keyid'
+                  keyserver: 'keyserverurl'
+                  source: 'deb [signed-by=$KEY_FILE] http://<url>/ xenial main'
+              source2:
+                  source: 'ppa:<ppa-name>'
+              source3:
+                  source: 'deb $MIRROR $RELEASE multiverse'
+                  key: |
+                      ------BEGIN PGP PUBLIC KEY BLOCK-------
+                      <key data>
+                      ------END PGP PUBLIC KEY BLOCK-------"""
+        )
+    ],
+    "frequency": PER_INSTANCE,
+}
+
+__doc__ = get_meta_doc(meta)
+
+# this will match 'XXX:YYY' (ie, 'cloud-archive:foo' or 'ppa:bar')
+ADD_APT_REPO_MATCH = r"^[\w-]+:\w"
 
 # place where apt stores cached repository data
 APT_LISTS = "/var/lib/apt/lists"
@@ -88,7 +179,6 @@ def handle(name, ocfg, cloud, log, _):
             )
         )
 
-    validate_cloudconfig_schema(cfg, schema)
     apply_debconf_selections(cfg, target)
     apply_apt(cfg, cloud, target)
 

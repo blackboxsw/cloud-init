@@ -600,13 +600,12 @@ def load_doc(requested_modules: list) -> str:
     for mod_name in all_modules:
         if "all" in requested_modules or mod_name in requested_modules:
             (mod_locs, _) = importer.find_module(
-                mod_name, ["cloudinit.config"], ["schema"]
+                mod_name, ["cloudinit.config"], ["meta"]
             )
             if mod_locs:
                 mod = importer.import_module(mod_locs[0])
                 docs += mod.__doc__ or ""
     return docs
-
 
 
 @lru_cache

@@ -11,7 +11,7 @@
 from textwrap import dedent
 
 from cloudinit import subp, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
+from cloudinit.config.schema import get_meta_doc
 from cloudinit.distros import ALL_DISTROS
 from cloudinit.settings import PER_ALWAYS
 
@@ -33,16 +33,10 @@ meta = {
     "examples": ["disable_ec2_metadata: true"],
 }
 
-schema = {
-    "type": "object",
-    "properties": {"disable_ec2_metadata": {"type": "boolean"}},
-}
-
-__doc__ = get_meta_doc(meta, schema)
+__doc__ = get_meta_doc(meta)
 
 
 def handle(name, cfg, _cloud, log, _args):
-    validate_cloudconfig_schema(cfg, schema)
     disabled = util.get_cfg_option_bool(cfg, "disable_ec2_metadata", False)
     if disabled:
         reject_cmd = None

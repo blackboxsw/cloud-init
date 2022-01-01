@@ -9,7 +9,7 @@ from io import StringIO
 from textwrap import dedent
 
 from cloudinit import safeyaml, type_utils, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
+from cloudinit.config.schema import get_meta_doc
 from cloudinit.distros import ALL_DISTROS
 from cloudinit.settings import PER_INSTANCE
 
@@ -42,29 +42,7 @@ meta = {
     ],
 }
 
-schema = {
-    "type": "object",
-    "properties": {
-        "debug": {
-            "additionalProperties": False,
-            "type": "object",
-            "properties": {
-                "verbose": {
-                    "description": "Should always be true for this module",
-                    "type": "boolean",
-                },
-                "output": {
-                    "description": (
-                        "Location to write output. Defaults to console + log"
-                    ),
-                    "type": "string",
-                },
-            },
-        }
-    },
-}
-
-__doc__ = get_meta_doc(meta, schema)
+__doc__ = get_meta_doc(meta)
 
 
 def _make_header(text):
@@ -85,7 +63,6 @@ def _dumps(obj):
 
 def handle(name, cfg, cloud, log, args):
     """Handler method activated by cloud-init."""
-    validate_cloudconfig_schema(cfg, schema)
     verbose = util.get_cfg_by_path(cfg, ("debug", "verbose"), default=True)
     if args:
         # if args are provided (from cmdline) then explicitly set verbose

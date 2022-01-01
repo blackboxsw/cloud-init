@@ -10,10 +10,12 @@
 import logging
 import os
 import shlex
+from textwrap import dedent
 
 from cloudinit import subp, util
-from cloudinit.config.schema import get_meta_doc, validate_cloudconfig_schema
-from cloudinit.config.schemas.disk_setup import meta, schema
+from cloudinit.config.schema import get_meta_doc
+from cloudinit.distros import ALL_DISTROS
+from cloudinit.settings import PER_INSTANCE
 
 # Define the commands to use
 SFDISK_CMD = subp.which("sfdisk")
@@ -27,7 +29,61 @@ WIPEFS_CMD = subp.which("wipefs")
 LANG_C_ENV = {"LANG": "C"}
 LOG = logging.getLogger(__name__)
 
-__doc__ = get_meta_doc(meta, schema)
+MODULE_DESCRIPTION = """\
+This module is able to configure simple partition tables and filesystems.
+
+.. note::
+    for more detail about configuration options for disk setup, see the disk
+    setup example
+
+For convenience, aliases can be specified for disks using the
+``device_aliases`` config key, which takes a dictionary of alias: path
+mappings. There are automatic aliases for ``swap`` and ``ephemeral<X>``, where
+``swap`` will always refer to the active swap partition and ``ephemeral<X>``
+will refer to the block device of the ephemeral image.
+
+Disk partitioning is done using the ``disk_setup`` directive. This config
+directive accepts a dictionary where each key is either a path to a block
+device or an alias specified in ``device_aliases``, and each value is the
+configuration options for the device. File system configuration is done using
+the ``fs_setup`` directive. This config directive accepts a list of
+filesystem configs.
+"""
+
+meta = {
+    "id": "cc_disk_setup",
+    "name": "Disk Setup",
+    "title": "Configure partitions and filesystems",
+    "description": MODULE_DESCRIPTION,
+    "distros": [ALL_DISTROS],
+    "frequency": PER_INSTANCE,
+    "examples": [
+        dedent(
+            """\
+            device_aliases:
+              my_alias: /dev/sdb
+            disk_setup:
+              my_alias:
+                table_type: gpt
+                layout: [50, 50]
+                overwrite: True
+            fs_setup:
+            - label: fs1
+              filesystem: ext4
+              device: my_alias.1
+              cmd: mkfs -t %(filesystem)s -L %(label)s %(device)s
+            - label: fs2
+              device: my_alias.2
+              filesystem: ext4
+            mounts:
+            - ["my_alias.1", "/mnt1"]
+            - ["my_alias.2", "/mnt2"]
+            """
+        )
+    ],
+}
+
+__doc__ = get_meta_doc(meta)
 
 
 def handle(_name, cfg, cloud, log, _args):

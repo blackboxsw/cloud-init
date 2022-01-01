@@ -68,30 +68,6 @@ meta = {
     ],
 }
 
-schema = {
-    "type": "object",
-    "properties": {
-        "ca-certs": {
-            "type": "object",
-            "properties": {
-                "remove-defaults": {
-                    "description": (
-                        "Remove default CA certificates if true. "
-                        "Default: false"
-                    ),
-                    "type": "boolean",
-                },
-                "trusted": {
-                    "description": "List of trusted CA certificates to add.",
-                    "type": "array",
-                    "items": {"type": "string"},
-                },
-            },
-            "additionalProperties": False,
-        }
-    },
-}
-
 __doc__ = get_meta_doc(meta)
 
 
