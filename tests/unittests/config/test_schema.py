@@ -166,6 +166,7 @@ class TestGetSchema:
             {"$ref": "#/$defs/cc_rsyslog"},
             {"$ref": "#/$defs/cc_runcmd"},
             {"$ref": "#/$defs/cc_salt_minion"},
+            {"$ref": "#/$defs/cc_ubuntu_advantage"},
         ]
         found_subschema_defs = []
         legacy_schema_keys = []
@@ -181,7 +182,6 @@ class TestGetSchema:
             "drivers",
             "ntp",
             "snap",
-            "ubuntu_advantage",
             "updates",
             "write_files",
             "write_files",
