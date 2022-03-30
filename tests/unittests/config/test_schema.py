@@ -167,6 +167,7 @@ class TestGetSchema:
             {"$ref": "#/$defs/cc_runcmd"},
             {"$ref": "#/$defs/cc_salt_minion"},
             {"$ref": "#/$defs/cc_ubuntu_advantage"},
+            {"$ref": "#/$defs/cc_ubuntu_drivers"},
         ]
         found_subschema_defs = []
         legacy_schema_keys = []
@@ -179,7 +180,6 @@ class TestGetSchema:
         assert expected_subschema_defs == found_subschema_defs
         # This list will dwindle as we move legacy schema to new $defs
         assert [
-            "drivers",
             "ntp",
             "snap",
             "updates",
