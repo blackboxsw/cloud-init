@@ -41,7 +41,7 @@ users:
     inactive: '5'
     system: true
   - name: fizzbuzz
-    sudo: False
+    sudo: false
     ssh_authorized_keys:
       - <ssh pub key 1>
       - <ssh pub key 2>

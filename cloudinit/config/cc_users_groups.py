@@ -4,11 +4,20 @@
 #
 # This file is part of cloud-init. See LICENSE file for license information.
 
-"""
-Users and Groups
-----------------
-**Summary:** configure users and groups
+"Users and Groups: Configure users and groups"
 
+from textwrap import dedent
+
+from cloudinit import log as logging
+from cloudinit.config.schema import MetaSchema, get_meta_doc
+
+# Ensure this is aliased to a name not 'distros'
+# since the module attribute 'distros'
+# is a list of distros that are supported, not a sub-module
+from cloudinit.distros import ug_util
+from cloudinit.settings import PER_INSTANCE
+
+MODULE_DESCRIPTION = """\
 This module configures users and groups. For more detailed information on user
 options, see the ``Including users and groups`` config example.
 
@@ -84,60 +93,62 @@ config keys for an entry in ``users`` are as follows:
     already exists. The following options are the exceptions; they are applied
     to already-existing users: ``plain_text_passwd``, ``hashed_passwd``,
     ``lock_passwd``, ``sudo``, ``ssh_authorized_keys``, ``ssh_redirect_user``.
-
-**Internal name:** ``cc_users_groups``
-
-**Module frequency:** per instance
-
-**Supported distros:** all
-
-**Config keys**::
-
-    groups:
-        - <group>: [<user>, <user>]
-        - <group>
-
-    users:
-        - default
-        # User explicitly omitted from sudo permission; also default behavior.
-        - name: <some_restricted_user>
-          sudo: false
-        - name: <username>
-          expiredate: '<date>'
-          gecos: <comment>
-          groups: <additional groups>
-          homedir: <home directory>
-          inactive: '<number of days>'
-          lock_passwd: <true/false>
-          no_create_home: <true/false>
-          no_log_init: <true/false>
-          no_user_group: <true/false>
-          passwd: <password>
-          primary_group: <primary group>
-          selinux_user: <selinux username>
-          shell: <shell path>
-          snapuser: <email>
-          ssh_redirect_user: <true/false>
-          ssh_authorized_keys:
-              - <key>
-              - <key>
-          ssh_import_id: <id>
-          sudo: <sudo config>
-          system: <true/false>
-          uid: <user id>
 """
 
-from cloudinit import log as logging
+distros = ["all"]
 
-# Ensure this is aliased to a name not 'distros'
-# since the module attribute 'distros'
-# is a list of distros that are supported, not a sub-module
-from cloudinit.distros import ug_util
-from cloudinit.settings import PER_INSTANCE
+meta: MetaSchema = {
+    "id": "cc_users_groups",
+    "name": "Users and Groups",
+    "title": "Configure users and groups",
+    "description": MODULE_DESCRIPTION,
+    "distros": distros,
+    "examples": [
+        dedent(
+        """\
+        # Add groups to the system
+        # The following example adds the ubuntu group with members 'root' and
+        # 'sys' and an empty group cloud-users.
+        groups:
+        - ubuntu: [root,sys]
+        - cloud-users
+        """
+        ),
+        dedent(
+        """\
+        # Avoid creating the <default> user and instead create newsuper
+        # Only github user TheRealFalcon and Launchpad user falcojr can
+        # ssh as newsuper
+        users:
+        - name: newsuper
+          gecos: Big Stuff
+          groups: users, admin
+          sudo: ALL=(ALL) NOPASSWD:ALL
+          lock_passwd: true
+          ssh_import_id:
+            - lp:falcojr
+            - gh:TheRealFalcon
+        """
+        ),
+        dedent(
+        """\
+        # To redirect a legacy username to the <default> user for a
+        # distribution, ssh_redirect_user will accept an SSH connection and
+        # emit a message telling the client to ssh as the <default> user.
+        # SSH clients will get the message:
+        users:
+        - default
+        - name: nosshlogins
+          ssh_redirect_user: true
+        """
+        ),
+    ],
+    "frequency": PER_INSTANCE,
+}
+
+__doc__ = get_meta_doc(meta)
 
 LOG = logging.getLogger(__name__)
-
-frequency = PER_INSTANCE
 
 
 def handle(name, cfg, cloud, _log, _args):

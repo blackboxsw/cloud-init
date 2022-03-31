@@ -1,6 +1,125 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "$defs": {
+    "users_groups.group_with_users": {
+      "type": ["string", "object"],
+      "patternProperties": {
+        "^.+$": {
+          "description": "Optional list of usernames to add to the group",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "users_groups.user": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The user's login name",
+          "type": "string"
+        },
+        "expiredate": {
+          "default": null,
+          "description": "Optional. Date on which the user's account will be disabled. Default: ``null``",
+          "type": "string"
+        },
+        "gecos": {
+          "description": "Optional comment about the user, usually a comma-separated string of real name and contact information",
+          "type": "string"
+        },
+        "groups": {
+          "description": "Optional comma-separated list of groups to add the user to.",
+          "type": "string"
+        },
+        "homedir": {
+          "description": "Optional home dir for user. Default: ``/home/<username>``",
+          "default": "``/home/<username>``",
+          "type": "string"
+        },
+        "inactive": {
+          "description": "Optional string representing the number of days until the user is disabled. ",
+          "type": "string"
+        },
+        "lock_passwd": {
+          "description": "Optional number of days after a password expires until the account is permanently disabled.",
+          "type": "integer"
+        },
+        "lock_passwd": {
+          "default": true,
+          "description": "Disable password login. Default: ``true``",
+          "type": "boolean"
+        },
+        "no_create_home": {
+          "default": false,
+          "description": "Do not create home directory. Default: ``false``",
+          "type": "boolean"
+        },
+        "no_log_init": {
+          "default": false,
+          "description": "Do not initialize lastlog and faillog for user. Default: ``false``",
+          "type": "boolean"
+        },
+        "no_user_group": {
+          "default": false,
+          "description": " Do not create group named after user. Default: ``false``",
+          "type": "boolean"
+        },
+        "passwd": {
+          "description": "Hash of user password",
+          "type": "string"
+        },
+        "primary_group": {
+          "default": "``<username>``",
+          "description": "Primary group for user. Default: ``<username>``",
+          "type": "string"
+        },
+        "selinux_user": {
+          "description": "SELinux user for user's login. Default to default SELinux user.",
+          "type": "string"
+        },
+        "shell": {
+          "description": "The user's login shell. The default is to set no shell, which results in a system-specific default being used.",
+          "type": "string"
+        },
+        "snapuser": {
+          "description": " Specify an email address to create the user as a Snappy user through ``snap create-user``. If an Ubuntu SSO account is associated with the address, username and SSH keys will be requested from there.",
+          "type": "string"
+        },
+        "ssh_authorized_keys": {
+          "description": "List of SSH keys to add to user's authkeys file. Can not be combined with ``ssh_redirect_user``", 
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "ssh_import_id": {
+          "description": "List of SSH IDs to import for user. Can not be combined with ``ssh_redirect_user``",
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "ssh_redirect_user": {
+          "description": "The user's login name",
+          "type": "boolean"
+        },
+        "system": {
+          "description": "The user's login name",
+          "type": "boolean"
+        },
+        "sudo": {
+          "default": false,
+          "type": ["boolean", "string"],
+          "description": "Sudo rule to use, list of sudo rules to use or false."
+        },
+        "uid": {
+          "description": "The user's ID. Default is next available value.",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
     "apt_configure.mirror": {
       "type": "array",
       "items": {
@@ -1426,6 +1545,28 @@
         }
       }
     },
+    "cc_users_groups": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/users_groups.group_with_users"
+          },
+          "minItems": 1
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {"enum": ["default"]},
+              {"$ref": "#/$defs/users_groups.user"}
+            ]
+          },
+          "minItems": 1
+        }
+      }
+    },
     "cc_write_files": {
       "type": "object",
       "properties": {
@@ -1598,6 +1739,7 @@
     { "$ref": "#/$defs/cc_ubuntu_drivers"},
     { "$ref": "#/$defs/cc_update_etc_hosts"},
     { "$ref": "#/$defs/cc_update_hostname"},
+    { "$ref": "#/$defs/cc_users_groups"},
     { "$ref": "#/$defs/cc_write_files"},
     { "$ref": "#/$defs/cc_yum_add_repo"},
     { "$ref": "#/$defs/cc_zypper_add_repo"}
