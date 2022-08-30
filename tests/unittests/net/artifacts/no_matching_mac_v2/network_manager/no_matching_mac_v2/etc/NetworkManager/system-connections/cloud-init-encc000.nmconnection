@@ -10,3 +10,4 @@ interface-name=encc000
 org.freedesktop.NetworkManager.origin=cloud-init
 
 [ethernet]
+

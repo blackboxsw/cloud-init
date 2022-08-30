@@ -25,6 +25,7 @@ in `unittests/test_net.py`. While that file contains similar tests, it has
 become too large to be maintainable.
 """
 import glob
+import os
 from enum import Flag, auto
 from pathlib import Path
 
@@ -49,39 +50,24 @@ def setup(mocker):
     mocker.patch("cloudinit.net.network_state.get_interfaces_by_mac")
 
 
-def _check_netplan(
-    network_state: NetworkState, netplan_path: Path, expected_config
+def _dir_to_path_dict(dirname, test_name):
+    result = {}
+    for (dir_path, _, file_names) in os.walk(dirname):
+        subdir = Path(dir_path.replace(f"{dirname}/{test_name}/", ""))
+        for file_name in file_names:
+            file_path = Path(dir_path, file_name)
+            result[str(subdir / file_name)] = file_path.read_text()
+    return result
+
+
+def _assert_expected_config_file_artifacts(
+    expected_dir, result_dir, test_name
 ):
-    if network_state.version == 2:
-        renderer = NetplanRenderer(config={"netplan_path": netplan_path})
-        renderer.render_network_state(network_state)
-        assert safeyaml.load(netplan_path.read_text()) == expected_config, (
-            f"Netplan config generated at {netplan_path} does not match v2 "
-            "config defined for this test."
-        )
-    else:
-        raise NotImplementedError
-
-
-def _check_network_manager(network_state: NetworkState, tmp_path: Path):
-    renderer = NetworkManagerRenderer()
-    renderer.render_network_state(
-        network_state, target=str(tmp_path / "no_matching_mac")
-    )
-    expected_paths = glob.glob(
-        str(ARTIFACT_DIR / "no_matching_mac" / "**/*.nmconnection"),
-        recursive=True,
-    )
-    for expected_path in expected_paths:
-        expected_contents = Path(expected_path).read_text()
-        actual_path = tmp_path / expected_path.split(
-            str(ARTIFACT_DIR), maxsplit=1
-        )[1].lstrip("/")
-        assert (
-            actual_path.exists()
-        ), f"Expected {actual_path} to exist, but it does not"
-        actual_contents = actual_path.read_text()
-        assert expected_contents.strip() == actual_contents.strip()
+    result_files = _dir_to_path_dict(result_dir, test_name)
+    expected_files = _dir_to_path_dict(expected_dir, test_name)
+    assert sorted(result_files.keys()) == sorted(expected_files.keys())
+    for path, content in result_files.items():
+        assert content == expected_files[path]
 
 
 @pytest.mark.parametrize(
@@ -94,8 +80,14 @@ def test_convert(test_name, renderers, tmp_path):
     )
     network_state = parse_net_config_data(network_config["network"])
     if Renderer.Netplan in renderers:
-        _check_netplan(
-            network_state, tmp_path / "netplan.yaml", network_config
-        )
+        renderer = NetplanRenderer()
+        expected_dir = ARTIFACT_DIR / test_name / "netplan"
+        result_dir = tmp_path / "netplan"
     if Renderer.NetworkManager in renderers:
-        _check_network_manager(network_state, tmp_path)
+        renderer = NetworkManagerRenderer()
+        expected_dir = ARTIFACT_DIR / test_name / "network_manager"
+        result_dir = tmp_path / "network_manager"
+    renderer.render_network_state(
+        network_state, target=str(result_dir / test_name)
+    )
+    _assert_expected_config_file_artifacts(expected_dir, result_dir, test_name)

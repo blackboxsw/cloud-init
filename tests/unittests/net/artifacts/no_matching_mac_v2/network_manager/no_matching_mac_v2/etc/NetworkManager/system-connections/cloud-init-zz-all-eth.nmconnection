@@ -14,3 +14,4 @@ org.freedesktop.NetworkManager.origin=cloud-init
 [ipv4]
 method=auto
 may-fail=false
+
