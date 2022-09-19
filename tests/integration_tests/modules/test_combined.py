@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 import cloudinit.config
+from cloudinit.subp import subp
 from tests.integration_tests.clouds import ImageSpecification
 from tests.integration_tests.decorators import retry
 from tests.integration_tests.instances import IntegrationInstance
@@ -76,6 +77,17 @@ timezone: US/Aleutian
 @pytest.mark.ci
 @pytest.mark.user_data(USER_DATA)
 class TestCombined:
+    def lxd_has_nocloud_metadata(
+        self, class_client: IntegrationInstance
+    ) -> bool:
+        # Bionic++ no longer provide nocloud-net seed files (LP: #1988401)
+        lxd_image_metadata = subp(
+            ["lxc", "config", "metadata", "show", class_client.instance.name]
+        )
+        return bool(
+            "/var/lib/cloud/seed/nocloud-net" in lxd_image_metadata.stdout
+        )
+
     def test_final_message(self, class_client: IntegrationInstance):
         """Test that final_message module works as expected.
 
@@ -217,7 +229,7 @@ class TestCombined:
         parsed_datasource = json.loads(status_file)["v1"]["datasource"]
 
         if client.settings.PLATFORM in ["lxd_container", "lxd_vm"]:
-            if ImageSpecification.from_os_image().release == "bionic":
+            if self.lxd_has_nocloud_metadata(client):
                 datasource = "DataSourceNoCloud"
             else:
                 datasource = "DataSourceLXD"
@@ -291,7 +303,7 @@ class TestCombined:
         data = json.loads(instance_json_file)
         self._check_common_metadata(data)
         v1_data = data["v1"]
-        if ImageSpecification.from_os_image().release != "bionic":
+        if not self.lxd_has_nocloud_metadata(client):
             cloud_name = "lxd"
             subplatform = "LXD socket API v. 1.0 (/dev/lxd/sock)"
             # instance-id should be a UUID
@@ -327,7 +339,7 @@ class TestCombined:
         data = json.loads(instance_json_file)
         self._check_common_metadata(data)
         v1_data = data["v1"]
-        if ImageSpecification.from_os_image().release != "bionic":
+        if not self.lxd_has_nocloud_metadata(client):
             cloud_name = "lxd"
             subplatform = "LXD socket API v. 1.0 (/dev/lxd/sock)"
             # instance-id should be a UUID
