@@ -150,15 +150,27 @@ def disable_system_ca_certs(distro_cfg):
     """
     if distro_cfg["ca_cert_config"] is None:
         return
+    header_comment = (
+        "# Modified by cloud-init to deselect certs due to user-data"
+    )
+    added_header = False
     if os.stat(distro_cfg["ca_cert_config"]).st_size != 0:
         orig = util.load_file(distro_cfg["ca_cert_config"])
-        out = ""
+        out_lines = []
         for line in orig.splitlines():
-            if line.startswith("#") or line.startswith("!") or line == "":
-                out += line + "\n"
+            if line == header_comment:
+                added_header = True
+                out_lines.append(line)
+            elif line == "" or line[0] in ("#", "!"):
+                out_lines.append(line)
             else:
-                out += "!" + line + "\n"
-    util.write_file(distro_cfg["ca_cert_config"], out, omode="wb")
+                if not added_header:
+                    out_lines.append(header_comment)
+                    added_header = True
+                out_lines.append("!" + line)
+    util.write_file(
+        distro_cfg["ca_cert_config"], "\n".join(out_lines) + "\n", omode="wb"
+    )
 
 
 def remove_default_ca_certs(distro_cfg):

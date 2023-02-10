@@ -314,7 +314,10 @@ class TestRemoveDefaultCaCerts(TestCase):
 
     def test_commands(self):
         ca_certs_content = "# line1\nline2\nline3\n"
-        expected = "# line1\n!line2\n!line3\n"
+        expected = (
+            "# line1\n# Modified by cloud-init to deselect certs due to"
+            " user-data\n!line2\n!line3\n"
+        )
 
         for distro_name in cc_ca_certs.distros:
             conf = cc_ca_certs._distro_ca_certs_configs(distro_name)
