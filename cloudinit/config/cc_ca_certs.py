@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 DEFAULT_CONFIG = {
     "ca_cert_path": None,
     "ca_cert_local_path": "/usr/local/share/ca-certificates/",
-    "ca_cert_filename": "cloud-init-ca-cert-%(number)s.crt",
+    "ca_cert_filename": "cloud-init-ca-cert-{cert_index}.crt",
     "ca_cert_config": "/etc/ca-certificates.conf",
     "ca_cert_update_cmd": ["update-ca-certificates"],
 }
@@ -28,7 +28,7 @@ DISTRO_OVERRIDES = {
     "rhel": {
         "ca_cert_path": "/etc/pki/ca-trust/",
         "ca_cert_local_path": "/usr/share/pki/ca-trust-source/anchors/",
-        "ca_cert_filename": "cloud-init-ca-cert-%(number)s.crt",
+        "ca_cert_filename": "cloud-init-ca-cert-{cert_index}.crt",
         "ca_cert_config": None,
         "ca_cert_update_cmd": ["update-ca-trust"],
     },
@@ -111,15 +111,12 @@ def add_ca_certs(distro_cfg, certs):
     if not certs:
         return
     # Write each certificate to a separate file.
-    cert_number = 0
-    for c in certs:
+    for cert_index, c in enumerate(certs, 1):
         # First ensure they are strings...
         cert_file_contents = str(c)
-        cert_number += 1
-
-        cert_file_name = distro_cfg["ca_cert_full_path"] % {
-            "number": str(cert_number)
-        }
+        cert_file_name = distro_cfg["ca_cert_full_path"].format(
+            cert_index=cert_index
+        )
         util.write_file(cert_file_name, cert_file_contents, mode=0o644)
 
 
@@ -210,17 +207,16 @@ def handle(
     ca_cert_cfg = cfg.get("ca_certs", cfg.get("ca-certs"))
     distro_cfg = _distro_ca_certs_configs(cloud.distro.name)
 
-    # If there is a remove_defaults option set to true, remove the system
+    # If there is a remove_defaults option set to true, disable the system
     # default trusted CA certs first.
     if "remove-defaults" in ca_cert_cfg:
         LOG.warning(
             "DEPRECATION: key 'ca-certs.remove-defaults' is now deprecated."
             " Use 'ca_certs.remove_defaults' instead."
         )
-        if ca_cert_cfg.get("remove-defaults", False):
-            LOG.debug("Disabling/removing default certificates")
-            disable_default_ca_certs(cloud.distro.name, distro_cfg)
-    elif ca_cert_cfg.get("remove_defaults", False):
+    if ca_cert_cfg.get(
+        "remove_defaults", ca_cert_cfg.get("remove-defaults", False)
+    ):
         LOG.debug("Disabling/removing default certificates")
         disable_default_ca_certs(cloud.distro.name, distro_cfg)
 

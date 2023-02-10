@@ -249,7 +249,7 @@ class TestAddCaCerts(TestCase):
                 mock_write.assert_has_calls(
                     [
                         mock.call(
-                            conf["ca_cert_full_path"] % {"number": "1"},
+                            conf["ca_cert_full_path"].format(cert_index=1),
                             cert,
                             mode=0o644,
                         )
@@ -277,12 +277,12 @@ class TestAddCaCerts(TestCase):
                 mock_write.assert_has_calls(
                     [
                         mock.call(
-                            conf["ca_cert_full_path"] % {"number": "1"},
+                            conf["ca_cert_full_path"].format(cert_index=1),
                             expected_cert_1_file,
                             mode=0o644,
                         ),
                         mock.call(
-                            conf["ca_cert_full_path"] % {"number": "2"},
+                            conf["ca_cert_full_path"].format(cert_index=2),
                             expected_cert_2_file,
                             mode=0o644,
                         ),
@@ -344,6 +344,7 @@ class TestRemoveDefaultCaCerts(TestCase):
                             mock.call(conf["ca_cert_local_path"]),
                         ]
                     )
+                    self.assertEqual([], mock_subp.call_args_list)
                 elif distro_name in ["alpine", "debian", "ubuntu"]:
                     mock_load.assert_called_once_with(conf["ca_cert_config"])
                     mock_write.assert_called_once_with(
