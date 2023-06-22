@@ -37,30 +37,40 @@ VERSIONED_USERDATA_SCHEMA_FILE = "versions.schema.cloud-config.json"
 USERDATA_SCHEMA_FILE = "schema-cloud-config-v1.json"
 _YAML_MAP = {True: "true", False: "false", None: "null"}
 SCHEMA_DOC_TMPL = """
-{name}
-{title_underbar}
-**Summary:** {title}
+AAAAA {name}
+BBBBB {title_underbar}
 
-{description}
+CCCCC {title}
 
-**Internal name:** ``{id}``
+.. tab-set::
 
-**Module frequency:** {frequency}
+   .. tab-item:: **Summary**
 
-**Supported distros:** {distros}
+      DDDDD {description}
 
-{activate_by_schema_keys}{property_header}
-{property_doc}
+      EEEEE **Internal name:** ``{id}``
 
-{examples}
+      FFFFF **Module frequency:** {frequency}
+
+      GGGGG **Supported distros:** {distros}
+
+      HHHHH {activate_by_schema_keys}{property_header}
+
+   .. tab-item: **Config schema**
+
+      {property_doc}
+
+   .. tab-item: **Examples**
+
+      JJJJJ {examples}
 """
-SCHEMA_PROPERTY_HEADER = "**Config schema**:"
-SCHEMA_PROPERTY_TMPL = "{prefix}**{prop_name}:** ({prop_type}){description}"
+SCHEMA_PROPERTY_HEADER = "KKKKK **Config schema**:"
+SCHEMA_PROPERTY_TMPL = "LLLLL {prefix}**{prop_name}:** ({prop_type}){description}"
 SCHEMA_LIST_ITEM_TMPL = (
-    "{prefix}Each object in **{prop_name}** list supports the following keys:"
+    "MMMMM {prefix}Each object in **{prop_name}** list supports the following keys:"
 )
-SCHEMA_EXAMPLES_HEADER = "**Examples**::\n\n"
-SCHEMA_EXAMPLES_SPACER_TEMPLATE = "\n    # --- Example{0} ---"
+SCHEMA_EXAMPLES_HEADER = "NNNNN **Examples**::\n\n"
+SCHEMA_EXAMPLES_SPACER_TEMPLATE = "OOOOO \n    # --- Example{0} ---"
 DEPRECATED_KEY = "deprecated"
 DEPRECATED_PREFIX = "DEPRECATED: "
 

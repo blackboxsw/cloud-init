@@ -38,6 +38,10 @@ extensions = [
     "sphinx.ext.viewcode",
 ]
 
+apidoc_module_dir = '../../cloudinit/config/'
+apidoc_output_dir = 'reference/modules/'
+apidoc_separate_modules = False
+
 # The suffix of source filenames.
 source_suffix = ".rst"
 
