@@ -1029,9 +1029,9 @@ def _get_property_description(prop_config: dict) -> str:
     return description
 
 
-def _get_property_doc(schema: dict, defs: dict, prefix="    ") -> str:
+def _get_property_doc(schema: dict, defs: dict, prefix="   ") -> str:
     """Return restructured text describing the supported schema properties."""
-    new_prefix = prefix + "    "
+    new_prefix = prefix + "   "
     properties = []
     if schema.get("hidden") is True:
         return ""  # no docs for this schema
@@ -1070,7 +1070,7 @@ def _get_property_doc(schema: dict, defs: dict, prefix="    ") -> str:
                             prefix=new_prefix, prop_name=label
                         )
                     )
-                    new_prefix += "    "
+                    new_prefix += "   "
                     properties.append(
                         _get_property_doc(items, defs=defs, prefix=new_prefix)
                     )
@@ -1083,7 +1083,7 @@ def _get_property_doc(schema: dict, defs: dict, prefix="    ") -> str:
                                 prefix=new_prefix, prop_name=label
                             )
                         )
-                        new_prefix += "    "
+                        new_prefix += "   "
                         properties.append(
                             _get_property_doc(
                                 alt_schema, defs=defs, prefix=new_prefix
@@ -1093,7 +1093,7 @@ def _get_property_doc(schema: dict, defs: dict, prefix="    ") -> str:
                 "properties" in prop_config
                 or "patternProperties" in prop_config
             ):
-                new_prefix += "    "
+                new_prefix += "   "
                 properties.append(
                     _get_property_doc(
                         prop_config, defs=defs, prefix=new_prefix
@@ -1109,7 +1109,7 @@ def _get_examples(meta: MetaSchema) -> str:
         return ""
     rst_content = SCHEMA_EXAMPLES_HEADER
     for count, example in enumerate(examples):
-        indented_lines = textwrap.indent(example, "    ").split("\n")
+        indented_lines = textwrap.indent(example, "   ").split("\n")
         if rst_content != SCHEMA_EXAMPLES_HEADER:
             indented_lines.insert(
                 0, SCHEMA_EXAMPLES_SPACER_TEMPLATE.format(count + 1)
@@ -1186,7 +1186,7 @@ def get_meta_doc(meta: MetaSchema, schema: Optional[dict] = None) -> str:
         meta
     )
     template = SCHEMA_DOC_TMPL.format(**meta_copy)
-    return textwrap.indent(template, "    ")
+    return textwrap.indent(template, "   ")
 
 
 def get_modules() -> dict:
