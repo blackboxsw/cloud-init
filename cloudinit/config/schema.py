@@ -46,7 +46,7 @@ SCHEMA_DOC_TMPL = """
 
    .. tab-item:: **Summary**
 
-      {description}
+{description}
 
       **Internal name:** ``{id}``
 
@@ -56,14 +56,15 @@ SCHEMA_DOC_TMPL = """
 
 
    .. tab-item:: **Config schema**
+
       {activate_by_schema_keys}
       {property_header}
 
-      {property_doc}
+{property_doc}
 
    .. tab-item:: **Examples**
 
-      {examples}
+{examples}
 """
 SCHEMA_PROPERTY_HEADER = "**Config schema**:"
 SCHEMA_PROPERTY_TMPL = "{prefix}**{prop_name}:** ({prop_type}){description}"
@@ -71,7 +72,7 @@ SCHEMA_LIST_ITEM_TMPL = (
     "{prefix}Each object in **{prop_name}** list supports the following keys:"
 )
 SCHEMA_EXAMPLES_HEADER = "**Examples**::\n\n"
-SCHEMA_EXAMPLES_SPACER_TEMPLATE = "\n    # --- Example{0} ---"
+SCHEMA_EXAMPLES_SPACER_TEMPLATE = "\n   # --- Example{0} ---"
 DEPRECATED_KEY = "deprecated"
 DEPRECATED_PREFIX = "DEPRECATED: "
 
@@ -1070,7 +1071,6 @@ def _get_property_doc(schema: dict, defs: dict, prefix="   ") -> str:
                             prefix=new_prefix, prop_name=label
                         )
                     )
-                    new_prefix += "   "
                     properties.append(
                         _get_property_doc(items, defs=defs, prefix=new_prefix)
                     )
@@ -1083,7 +1083,6 @@ def _get_property_doc(schema: dict, defs: dict, prefix="   ") -> str:
                                 prefix=new_prefix, prop_name=label
                             )
                         )
-                        new_prefix += "   "
                         properties.append(
                             _get_property_doc(
                                 alt_schema, defs=defs, prefix=new_prefix
@@ -1093,7 +1092,6 @@ def _get_property_doc(schema: dict, defs: dict, prefix="   ") -> str:
                 "properties" in prop_config
                 or "patternProperties" in prop_config
             ):
-                new_prefix += "   "
                 properties.append(
                     _get_property_doc(
                         prop_config, defs=defs, prefix=new_prefix
@@ -1167,18 +1165,19 @@ def get_meta_doc(meta: MetaSchema, schema: Optional[dict] = None) -> str:
     # cast away type annotation
     meta_copy = dict(deepcopy(meta))
     meta_copy["property_header"] = ""
+    meta_copy["description"] = textwrap.indent(meta_copy["description"], "      ")
     defs = schema.get("$defs", {})
     if defs.get(meta["id"]):
         schema = defs.get(meta["id"], {})
         schema = cast(dict, schema)
     try:
-        meta_copy["property_doc"] = _get_property_doc(schema, defs=defs)
+        meta_copy["property_doc"] = _get_property_doc(schema, defs=defs, prefix="         ")
     except AttributeError:
         LOG.warning("Unable to render property_doc due to invalid schema")
         meta_copy["property_doc"] = ""
     if meta_copy["property_doc"]:
         meta_copy["property_header"] = SCHEMA_PROPERTY_HEADER
-    meta_copy["examples"] = textwrap.indent(_get_examples(meta), "   ")
+    meta_copy["examples"] = textwrap.indent(_get_examples(meta), "      ")
     meta_copy["distros"] = ", ".join(meta["distros"])
     # Need an underbar of the same length as the name
     meta_copy["title_underbar"] = re.sub(r".", "-", meta["name"])
