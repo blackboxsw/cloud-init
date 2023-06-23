@@ -23,17 +23,11 @@ meta: MetaSchema = {
     "frequency": PER_INSTANCE,
     "distros": [ALL_DISTROS],
     "activate_by_schema_keys": ["ansible"],
-    "description": dedent(
-        """\
-        This module provides ``ansible`` integration for
-        augmenting cloud-init's configuration of the local
-        node.
-
-
-        This module installs ansible during boot and
-        then uses ``ansible-pull`` to run the playbook
-        repository at the remote URL.
-        """
+    "description": (
+        "This module provides ``ansible`` integration for augmenting"
+        " cloud-init's configuration of the local node. This module installs"
+        " ansible during boot and then uses ``ansible-pull`` to run the"
+        " playbookrepository at the remote URL."
     ),
     "examples": [
         dedent(

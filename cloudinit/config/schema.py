@@ -37,40 +37,41 @@ VERSIONED_USERDATA_SCHEMA_FILE = "versions.schema.cloud-config.json"
 USERDATA_SCHEMA_FILE = "schema-cloud-config-v1.json"
 _YAML_MAP = {True: "true", False: "false", None: "null"}
 SCHEMA_DOC_TMPL = """
-AAAAA {name}
-BBBBB {title_underbar}
+{name}
+{title_underbar}
 
-CCCCC {title}
+{title}
 
 .. tab-set::
 
    .. tab-item:: **Summary**
 
-      DDDDD {description}
+      {description}
 
-      EEEEE **Internal name:** ``{id}``
+      **Internal name:** ``{id}``
 
-      FFFFF **Module frequency:** {frequency}
+      **Module frequency:** {frequency}
 
-      GGGGG **Supported distros:** {distros}
+      **Supported distros:** {distros}
 
-      HHHHH {activate_by_schema_keys}{property_header}
 
-   .. tab-item: **Config schema**
+   .. tab-item:: **Config schema**
+      {activate_by_schema_keys}
+      {property_header}
 
       {property_doc}
 
-   .. tab-item: **Examples**
+   .. tab-item:: **Examples**
 
-      JJJJJ {examples}
+      {examples}
 """
-SCHEMA_PROPERTY_HEADER = "KKKKK **Config schema**:"
-SCHEMA_PROPERTY_TMPL = "LLLLL {prefix}**{prop_name}:** ({prop_type}){description}"
+SCHEMA_PROPERTY_HEADER = "**Config schema**:"
+SCHEMA_PROPERTY_TMPL = "{prefix}**{prop_name}:** ({prop_type}){description}"
 SCHEMA_LIST_ITEM_TMPL = (
-    "MMMMM {prefix}Each object in **{prop_name}** list supports the following keys:"
+    "{prefix}Each object in **{prop_name}** list supports the following keys:"
 )
-SCHEMA_EXAMPLES_HEADER = "NNNNN **Examples**::\n\n"
-SCHEMA_EXAMPLES_SPACER_TEMPLATE = "OOOOO \n    # --- Example{0} ---"
+SCHEMA_EXAMPLES_HEADER = "**Examples**::\n\n"
+SCHEMA_EXAMPLES_SPACER_TEMPLATE = "\n    # --- Example{0} ---"
 DEPRECATED_KEY = "deprecated"
 DEPRECATED_PREFIX = "DEPRECATED: "
 
@@ -1092,6 +1093,7 @@ def _get_property_doc(schema: dict, defs: dict, prefix="    ") -> str:
                 "properties" in prop_config
                 or "patternProperties" in prop_config
             ):
+                new_prefix += "    "
                 properties.append(
                     _get_property_doc(
                         prop_config, defs=defs, prefix=new_prefix
@@ -1176,7 +1178,7 @@ def get_meta_doc(meta: MetaSchema, schema: Optional[dict] = None) -> str:
         meta_copy["property_doc"] = ""
     if meta_copy["property_doc"]:
         meta_copy["property_header"] = SCHEMA_PROPERTY_HEADER
-    meta_copy["examples"] = _get_examples(meta)
+    meta_copy["examples"] = textwrap.indent(_get_examples(meta), "   ")
     meta_copy["distros"] = ", ".join(meta["distros"])
     # Need an underbar of the same length as the name
     meta_copy["title_underbar"] = re.sub(r".", "-", meta["name"])
@@ -1184,7 +1186,7 @@ def get_meta_doc(meta: MetaSchema, schema: Optional[dict] = None) -> str:
         meta
     )
     template = SCHEMA_DOC_TMPL.format(**meta_copy)
-    return template
+    return textwrap.indent(template, "    ")
 
 
 def get_modules() -> dict:
