@@ -586,7 +586,10 @@ class TestAptSourceConfig(t_help.FilesystemMockingTestCase):
 
         with mock.patch("cloudinit.subp.subp") as mockobj:
             self._add_apt_sources(
-                cfg, TARGET, template_params=params, aa_repo_match=self.matcher
+                cfg,
+                get_cloud(),
+                template_params=params,
+                aa_repo_match=self.matcher,
             )
         mockobj.assert_any_call(
             [
@@ -611,7 +614,10 @@ class TestAptSourceConfig(t_help.FilesystemMockingTestCase):
 
         with mock.patch("cloudinit.subp.subp") as mockobj:
             self._add_apt_sources(
-                cfg, TARGET, template_params=params, aa_repo_match=self.matcher
+                cfg,
+                get_cloud(),
+                template_params=params,
+                aa_repo_match=self.matcher,
             )
         calls = [
             call(

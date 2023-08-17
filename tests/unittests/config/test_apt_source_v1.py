@@ -221,7 +221,8 @@ class TestAptSourceConfig(TestCase):
         }
         self.apt_src_basic_tri([cfg1, cfg2, cfg3])
 
-    def test_apt_src_basic_dict_tri(self):
+    @mock.patch.object(subp, "which", return_value="/.../add-apt-repository")
+    def test_apt_src_basic_dict_tri(self, _m_which):
         """Test Fix three deb source string with filenames (dict)"""
         cfg = {
             self.aptlistfile: {
@@ -634,7 +635,9 @@ class TestAptSourceConfig(TestCase):
 
         self.apt_src_keyid_real(cfg, EXPECTEDKEY, is_hardened=False)
 
-    def test_apt_src_ppa(self):
+    @mock.patch.object(subp, "subp")
+    @mock.patch.object(subp, "which")
+    def test_apt_src_ppa(self, m_which, m_subp):
         """Test adding a ppa"""
         cfg = {
             "source": "ppa:smoser/cloud-init-test",
@@ -642,22 +645,53 @@ class TestAptSourceConfig(TestCase):
         }
         cfg = self.wrapv1conf([cfg])
 
-        with mock.patch.object(subp, "subp") as mockobj:
-            cc_apt_configure.handle("test", cfg, self.cloud, None)
-        mockobj.assert_called_once_with(
-            [
-                "add-apt-repository",
-                "--no-update",
-                "ppa:smoser/cloud-init-test",
-            ],
-            target=None,
-        )
-
+        with mock.patch.object(subp, "subp") as m_subp:
+            with mock.patch.object(subp, "which") as m_which:
+                with mock.patch.object(
+                    self.cloud.distro, "install_packages"
+                ) as m_install_packages:
+                    with self.subTest(
+                        "Install software-properties-commmon when absent"
+                    ):
+                        # Absent add-apt-repository command
+                        m_which.return_value = None
+                        cc_apt_configure.handle("test", cfg, self.cloud, None)
+                        m_which.assert_called_once_with("add-apt-repository")
+                        m_which.reset_mock()
+                        m_install_packages.assert_called_once_with(
+                            ["software-properties-common"]
+                        )
+                        m_install_packages.reset_mock()
+                        m_subp.assert_called_once_with(
+                            [
+                                "add-apt-repository",
+                                "--no-update",
+                                "ppa:smoser/cloud-init-test",
+                            ],
+                            target=None,
+                        )
+                        m_subp.reset_mock()
+                    with self.subTest(
+                        "Install software-properties-commmon when present"
+                    ):
+                        m_which.return_value = "/usr/bin/add-apt-repository"
+                        cc_apt_configure.handle("test", cfg, self.cloud, None)
+                        m_which.assert_called_once_with("add-apt-repository")
+                        m_install_packages.assert_not_called()
+                        m_subp.assert_called_once_with(
+                            [
+                                "add-apt-repository",
+                                "--no-update",
+                                "ppa:smoser/cloud-init-test",
+                            ],
+                            target=None,
+                        )
         # adding ppa should ignore filename (uses add-apt-repository)
         self.assertFalse(os.path.isfile(self.aptlistfile))
 
-    def test_apt_src_ppa_tri(self):
-        """Test adding three ppa's"""
+    @mock.patch.object(subp, "which", return_value="/.../add-apt-repository")
+    def test_apt_src_ppa_tri(self, _m_which):
+        """Test adding three PPAs"""
         cfg1 = {
             "source": "ppa:smoser/cloud-init-test",
             "filename": self.aptlistfile,

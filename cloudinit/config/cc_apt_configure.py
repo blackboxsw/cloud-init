@@ -568,6 +568,13 @@ def add_apt_sources(
             ent["filename"] += ".list"
 
         if aa_repo_match(source):
+            if not subp.which("add-apt-repository"):
+                LOG.debug(
+                    "Installing software-properties-common to configure APT"
+                    " repo source (%s). Image does not contain this"
+                    "recommended dependency."
+                )
+                cloud.distro.install_packages(["software-properties-common"])
             try:
                 subp.subp(
                     ["add-apt-repository", "--no-update", source],
