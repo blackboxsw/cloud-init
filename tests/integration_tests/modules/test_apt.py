@@ -11,6 +11,8 @@ from tests.integration_tests.releases import CURRENT_RELEASE, IS_UBUNTU
 
 USER_DATA = """\
 #cloud-config
+bootcmd:
+  - apt-get remove gpg --yes
 apt:
   conf: |
     APT {
@@ -223,6 +225,7 @@ class TestApt:
         Ported from
         tests/cloud_tests/testcases/modules/apt_configure_sources_key.py
         """
+        import pdb; pdb.set_trace()
         test_archive_contents = class_client.read_from_file(
             "/etc/apt/sources.list.d/test_key.list"
         )
