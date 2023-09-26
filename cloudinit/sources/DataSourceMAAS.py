@@ -10,8 +10,10 @@ import hashlib
 import logging
 import os
 import time
+from typing import Tuple
 
 from cloudinit import sources, url_helper, util
+from cloudinit.sources import NetworkConfigSource
 
 LOG = logging.getLogger(__name__)
 MD_VERSION = "2012-03-01"
@@ -40,6 +42,12 @@ class DataSourceMAAS(sources.DataSource):
     dsname = "MAAS"
     id_hash = None
     _oauth_helper = None
+    network_config_sources: Tuple[NetworkConfigSource, ...] = (
+        NetworkConfigSource.CMD_LINE,
+        NetworkConfigSource.SYSTEM_CFG,
+        NetworkConfigSource.DS,
+        NetworkConfigSource.INITRAMFS,
+    )
 
     def __init__(self, sys_cfg, distro, paths):
         sources.DataSource.__init__(self, sys_cfg, distro, paths)
@@ -300,6 +308,7 @@ class MAASSeedDirMalformed(Exception):
 
 # Used to match classes to dependencies
 datasources = [
+    (DataSourceMAAS, (sources.DEP_FILESYSTEM,)),
     (DataSourceMAAS, (sources.DEP_FILESYSTEM, sources.DEP_NETWORK)),
 ]
 
