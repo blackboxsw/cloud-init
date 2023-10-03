@@ -14,6 +14,7 @@ from typing import Tuple
 
 from cloudinit import sources, url_helper, util
 from cloudinit.sources import NetworkConfigSource
+from cloudinit.net.cmdline import KlibcNetworkConfigSource
 
 LOG = logging.getLogger(__name__)
 MD_VERSION = "2012-03-01"
@@ -42,12 +43,6 @@ class DataSourceMAAS(sources.DataSource):
     dsname = "MAAS"
     id_hash = None
     _oauth_helper = None
-    network_config_sources: Tuple[NetworkConfigSource, ...] = (
-        NetworkConfigSource.CMD_LINE,
-        NetworkConfigSource.SYSTEM_CFG,
-        NetworkConfigSource.DS,
-        NetworkConfigSource.INITRAMFS,
-    )
 
     def __init__(self, sys_cfg, distro, paths):
         sources.DataSource.__init__(self, sys_cfg, distro, paths)
@@ -170,6 +165,24 @@ class DataSourceMAAS(sources.DataSource):
             return False
         ncfg = util.get_cfg_by_path(sys_cfg, ("datasource", self.dsname), {})
         return self.id_hash == get_id_from_ds_cfg(ncfg)
+
+
+class DataSourceMAASLocal(DataSourceMAAS):
+
+    network_config_sources: Tuple[NetworkConfigSource, ...] = (
+        NetworkConfigSource.CMD_LINE,
+        NetworkConfigSource.SYSTEM_CFG,
+        NetworkConfigSource.DS,
+        NetworkConfigSource.INITRAMFS,
+    )
+
+    def _get_data(self):
+        """Unable to _get_data if no initramfs applicable network."""
+        if not KlibcNetworkConfigSource().is_applicable():
+            LOG.debug("No initramfs applicable config")
+            return False
+        LOG.debug("Found initramfs applicable config")
+        return super()._get_data()
 
 
 def get_oauth_helper(cfg):
@@ -308,7 +321,7 @@ class MAASSeedDirMalformed(Exception):
 
 # Used to match classes to dependencies
 datasources = [
-    (DataSourceMAAS, (sources.DEP_FILESYSTEM,)),
+    (DataSourceMAASLocal, (sources.DEP_FILESYSTEM,)),
     (DataSourceMAAS, (sources.DEP_FILESYSTEM, sources.DEP_NETWORK)),
 ]
 
