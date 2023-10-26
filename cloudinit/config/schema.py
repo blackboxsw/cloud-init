@@ -635,7 +635,10 @@ class _Annotator:
                 errors_by_line[int(line)].append(msg)
             else:
                 col = None
-                errors_by_line[self._schemamarks[path]].append(msg)
+                if path:
+                    errors_by_line[self._schemamarks[path]].append(msg)
+                else:
+                    errors_by_line["generic"].append(msg)
             if col is not None:
                 msg = "Line {line} column {col}: {msg}".format(
                     line=line, col=col, msg=msg
@@ -668,6 +671,10 @@ class _Annotator:
         deprecation_footer: List[str] = []
         error_index = 1
         deprecation_index = 1
+        if "generic" in errors_by_line:
+            error_footer.extend(
+                map(lambda msg: f"# E0: {msg}", errors_by_line["generic"])
+            )
         for line_number, line in enumerate(lines, 1):
             errors = errors_by_line[line_number]
             deprecations = deprecations_by_line[line_number]
