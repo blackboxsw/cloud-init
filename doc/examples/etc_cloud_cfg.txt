@@ -1,0 +1,184 @@
+# The top level settings are used as module
+# and base configuration.
+
+# A set of users which may be applied and/or used by various modules
+# when a 'default' entry is found it will reference the 'default_user'
+# from the distro configuration specified below
+users:
+  - default
+
+# If this is set, 'root' will not be able to ssh in and they
+# will get a message to login instead as the default $user
+disable_root: true
+
+# This will cause the set+update hostname module to not operate (if true)
+preserve_hostname: false
+
+# If you use datasource_list array, keep array items in a single line.
+# If you use multi line array, ds-identify script won't read array items.
+# Example datasource config
+datasource:
+  Ec2:
+    metadata_urls: [ 'blah.com' ]
+    timeout: 5 # (defaults to 50 seconds)
+    max_wait: 10 # (defaults to 120 seconds)
+
+# The modules that run in the 'init' stage
+cloud_init_modules:
+  - migrator
+  - seed_random
+  - bootcmd
+  - write_files
+  - growpart
+  - resizefs
+  - disk_setup
+  - mounts
+  - set_hostname
+  - update_hostname
+  - update_etc_hosts
+  - ca_certs
+  - rsyslog
+  - users_groups
+  - ssh
+
+# The modules that run in the 'config' stage
+cloud_config_modules:
+  - wireguard
+  - snap
+  - ubuntu_autoinstall
+  - ssh_import_id
+  - keyboard
+  - locale
+  - set_passwords
+  - grub_dpkg
+  - apt_pipelining
+  - apt_configure
+  - ubuntu_advantage
+  - ntp
+  - timezone
+  - disable_ec2_metadata
+  - runcmd
+  - byobu
+
+# The modules that run in the 'final' stage
+cloud_final_modules:
+  - package_update_upgrade_install
+  - fan
+  - landscape
+  - lxd
+  - ubuntu_drivers
+  - write_files_deferred
+  - puppet
+  - chef
+  - ansible
+  - mcollective
+  - salt_minion
+  - reset_rmc
+  - rightscale_userdata
+  - scripts_vendor
+  - scripts_per_once
+  - scripts_per_boot
+  - scripts_per_instance
+  - scripts_user
+  - ssh_authkey_fingerprints
+  - keys_to_console
+  - install_hotplug
+  - phone_home
+  - final_message
+  - power_state_change
+
+# System and/or distro specific settings
+# (not accessible to handlers/transforms)
+system_info:
+  # This will affect which distro class gets used
+  distro: ubuntu
+  # Default user name + that default users groups (if added/used)
+  default_user:
+    name: ubuntu
+    lock_passwd: True
+    gecos: Ubuntu
+    groups: [adm, cdrom, dip, lxd, sudo]
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+  network:
+    renderers: ['netplan', 'eni', 'sysconfig']
+    activators: ['netplan', 'eni', 'network-manager', 'networkd']
+  # Automatically discover the best ntp_client
+  ntp_client: auto
+  # Other config here will be given to the distro class and/or path classes
+  paths:
+    cloud_dir: /var/lib/cloud/
+    templates_dir: /etc/cloud/templates/
+  package_mirrors:
+    - arches: [i386, amd64]
+      failsafe:
+        primary: http://archive.ubuntu.com/ubuntu
+        security: http://security.ubuntu.com/ubuntu
+      search:
+        primary:
+          - http://%(ec2_region)s.ec2.archive.ubuntu.com/ubuntu/
+          - http://%(availability_zone)s.clouds.archive.ubuntu.com/ubuntu/
+          - http://%(region)s.clouds.archive.ubuntu.com/ubuntu/
+        security: []
+    - arches: [arm64, armel, armhf]
+      failsafe:
+        primary: http://ports.ubuntu.com/ubuntu-ports
+        security: http://ports.ubuntu.com/ubuntu-ports
+      search:
+        primary:
+          - http://%(ec2_region)s.ec2.ports.ubuntu.com/ubuntu-ports/
+          - http://%(availability_zone)s.clouds.ports.ubuntu.com/ubuntu-ports/
+          - http://%(region)s.clouds.ports.ubuntu.com/ubuntu-ports/
+        security: []
+    - arches: [default]
+      failsafe:
+        primary: http://ports.ubuntu.com/ubuntu-ports
+        security: http://ports.ubuntu.com/ubuntu-ports
+  ssh_svcname: ssh
+
+# configure where output will go 'output' entry is a dict with 'init',
+# 'config', 'final' or 'all' entries.  Each one defines where
+# cloud-init, cloud-config, cloud-config-final or all output will go
+# each entry in the dict can be a string, list or dict.
+# if it is a string, it refers to stdout and stderr
+# if it is a list, entry 0 is stdout, entry 1 is stderr
+# if it is a dict, it is expected to have 'output' and 'error' fields
+# default is to write to console only
+# the special entry "&1" for an error means "same location as stdout"
+# (Note, that '&1' has meaning in yaml, so it must be quoted)
+output:
+  init: "> /var/log/my-cloud-init.log"
+  config: [ ">> /tmp/foo.out", "> /tmp/foo.err" ]
+  final:
+    output: "| tee /tmp/final.stdout | tee /tmp/bar.stdout"
+    error: "&1"
+
+# manual cache clean.
+# By default, the link from /var/lib/cloud/instance to
+# the specific instance in /var/lib/cloud/instances/ is removed on every
+# boot.  The cloud-init code then searches for a DataSource on every boot
+# if your DataSource will not be present on every boot, then you can set
+# this option to 'True', and maintain (remove) that link before the image
+# will be booted as a new instance.
+# default is False
+manual_cache_clean: False
+
+# def_log_file and syslog_fix_perms work together
+# if
+# - logging is set to go to a log file 'L' both with and without syslog
+# - and 'L' does not exist
+# - and syslog is configured to write to 'L'
+# then 'L' will be initially created with root:root ownership (during
+# cloud-init), and then at cloud-config time (when syslog is available)
+# the syslog daemon will be unable to write to the file.
+#
+# to remedy this situation, 'def_log_file' can be set to a filename
+# and syslog_fix_perms to a string containing "<user>:<group>"
+# if syslog_fix_perms is a list, it will iterate through and use the
+# first pair that does not raise error.
+#
+# the default values are '/var/log/cloud-init.log' and 'syslog:adm'
+# the value of 'def_log_file' should match what is configured in logging
+# if either is empty, then no change of ownership will be done
+def_log_file: /var/log/my-logging-file.log
+syslog_fix_perms: syslog:root

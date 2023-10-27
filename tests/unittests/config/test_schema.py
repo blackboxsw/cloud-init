@@ -212,7 +212,13 @@ class TestGetSchema:
             [meta["id"] for meta in get_metas().values() if meta is not None]
         )
         assert "http://json-schema.org/draft-04/schema#" == schema["$schema"]
-        assert ["$defs", "$schema", "allOf"] == sorted(list(schema.keys()))
+        assert [
+            "$defs",
+            "$schema",
+            "additionalProperties",
+            "allOf",
+            "properties",
+        ] == sorted(list(schema.keys()))
         # New style schema should be defined in static schema file in $defs
         expected_subschema_defs = [
             {"$ref": "#/$defs/base_config"},
@@ -1784,7 +1790,7 @@ class TestMain:
         vd_file = paths.get_ipath_cur("vendor_cloud_config")
         write_file(vd_file, b"#cloud-config\nssh_import_id: [me]")
         vd2_file = paths.get_ipath_cur("vendor2_cloud_config")
-        write_file(vd2_file, b"#cloud-config\nssh_pw_auth: true")
+        write_file(vd2_file, b"#cloud-config\nssh_pwauth: true")
         network_file = paths.get_ipath_cur("network_config")
         write_file(network_file, net_config)
         myargs = ["mycmd", "--system"]
@@ -1832,9 +1838,13 @@ class TestMain:
         assert expected == err
 
 
-def _get_meta_doc_examples(
-    file_glob="cloud-config*.txt", exclusion_match=r"^cloud-config-archive.*"
-):
+def _get_meta_doc_examples(file_glob="cloud-config*.txt"):
+    exlusion_patterns = [
+        "^cloud-config-archive.*",
+        "etc_cloud_cfg.txt",
+        "cloud-config-datasources.txt",
+    ]
+    exclusion_match = f"({'|'.join(exlusion_patterns)})"
     examples_dir = Path(cloud_init_project_dir("doc/examples"))
     assert examples_dir.is_dir()
     return (
@@ -2128,7 +2138,6 @@ class TestSchemaFuzz:
 
 
 class TestHandleSchemaArgs:
-
     Args = namedtuple(
         "Args", "config_file schema_type docs system annotate instance_data"
     )
