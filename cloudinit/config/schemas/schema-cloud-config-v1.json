@@ -3767,7 +3767,6 @@
     "yum_repo_dir": {},
     "yum_repos": {},
     "zypper": {}
-
   },
   "additionalProperties": false
 }
