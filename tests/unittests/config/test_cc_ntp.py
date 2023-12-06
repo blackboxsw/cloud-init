@@ -15,6 +15,7 @@ from cloudinit.config.schema import (
     get_schema,
     validate_cloudconfig_schema,
 )
+from cloudinit.distros import OSFAMILIES
 from tests.unittests.helpers import (
     CiTestCase,
     FilesystemMockingTestCase,
@@ -39,6 +40,7 @@ NTP={% for host in servers|list + pools|list %}{{ host }} {% endfor -%}
 
 
 class TestNtp(FilesystemMockingTestCase):
+    maxDiff = None
     with_logs = True
 
     def setUp(self):
@@ -69,12 +71,13 @@ class TestNtp(FilesystemMockingTestCase):
         util.write_file(template_fn, content=template)
         return (confpath, template_fn)
 
-    def _mock_ntp_client_config(self, client=None, distro=None):
+    def _mock_ntp_client_config(self, client=None, distro=None, osfamily=None):
         if not client:
             client = "ntp"
         if not distro:
             distro = "ubuntu"
-        dcfg = cc_ntp.distro_ntp_client_configs(distro)
+            osfamily = "debian"
+        dcfg = cc_ntp.distro_ntp_client_configs(distro, osfamily)
         if client == "systemd-timesyncd":
             template = TIMESYNCD_TEMPLATE
         else:
@@ -234,18 +237,32 @@ class TestNtp(FilesystemMockingTestCase):
         base = copy.deepcopy(cc_ntp.NTP_CLIENT_CONFIG)
         # confirm no-delta distros match the base config
         for distro in cc_ntp.distros:
-            if distro not in delta:
-                result = cc_ntp.distro_ntp_client_configs(distro)
+            mycloud = self._get_cloud(distro)
+            if distro not in delta and mycloud.distro.osfamily not in delta:
+                result = cc_ntp.distro_ntp_client_configs(
+                    mycloud.distro.name, mycloud.distro.osfamily
+                )
                 self.assertEqual(base, result)
         # for distros with delta, ensure the merged config values match
         # what is set in the delta
-        for distro in delta.keys():
-            result = cc_ntp.distro_ntp_client_configs(distro)
-            for client in delta[distro].keys():
-                for key in delta[distro][client].keys():
-                    self.assertEqual(
-                        delta[distro][client][key], result[client][key]
-                    )
+        for delta_key in delta.keys():
+            # delta_key can be an osfamily or specific distro
+            for distro in OSFAMILIES.get(delta_key, [delta_key]):
+                if distro not in cc_ntp.distros:
+                    # Not a supported distro for cc_ntp module
+                    continue
+                mycloud = self._get_cloud(distro)
+                result = cc_ntp.distro_ntp_client_configs(
+                    mycloud.distro.name, mycloud.distro.osfamily
+                )
+                if distro not in delta:
+                    # Fallback to delta_key when distro key not in delta
+                    distro = delta_key
+                for client in delta[distro].keys():
+                    for key in delta[distro][client].keys():
+                        self.assertEqual(
+                            delta[distro][client][key], result[client][key]
+                        )
 
     def _get_expected_pools(self, pools, distro, client):
         if client in ["ntp", "chrony"]:
@@ -285,7 +302,10 @@ class TestNtp(FilesystemMockingTestCase):
         servers = ["192.168.23.3", "192.168.23.4"]
         for client in ["ntp", "systemd-timesyncd", "chrony"]:
             for distro in cc_ntp.distros:
-                distro_cfg = cc_ntp.distro_ntp_client_configs(distro)
+                mycloud = self._get_cloud(distro)
+                distro_cfg = cc_ntp.distro_ntp_client_configs(
+                    mycloud.distro.name, mycloud.distro.osfamily
+                )
                 ntpclient = distro_cfg[client]
                 confpath = os.path.join(
                     self.new_root, ntpclient.get("confpath")[1:]
@@ -376,7 +396,9 @@ class TestNtp(FilesystemMockingTestCase):
                 if distro == "cos":
                     return
                 mycloud = self._get_cloud(distro)
-                ntpconfig = self._mock_ntp_client_config(distro=distro)
+                ntpconfig = self._mock_ntp_client_config(
+                    distro=distro, osfamily=mycloud.distro.osfamily
+                )
                 confpath = ntpconfig["confpath"]
                 m_select.return_value = ntpconfig
                 cc_ntp.handle("cc_ntp", valid_empty_config, mycloud, [])
@@ -549,7 +571,9 @@ class TestNtp(FilesystemMockingTestCase):
         )
         distro = "ubuntu"
         mycloud = self._get_cloud(distro)
-        distro_configs = cc_ntp.distro_ntp_client_configs(distro)
+        distro_configs = cc_ntp.distro_ntp_client_configs(
+            distro, mycloud.distro.osfamily
+        )
         expected_client = "systemd-timesyncd"
         expected_cfg = distro_configs[expected_client]
         expected_calls = []
@@ -569,7 +593,9 @@ class TestNtp(FilesystemMockingTestCase):
         m_which.return_value = None
         for distro in cc_ntp.distros:
             mycloud = self._get_cloud(distro)
-            distro_configs = cc_ntp.distro_ntp_client_configs(distro)
+            distro_configs = cc_ntp.distro_ntp_client_configs(
+                mycloud.distro.name, mycloud.distro.osfamily
+            )
             expected_client = mycloud.distro.preferred_ntp_clients[0]
             expected_cfg = distro_configs[expected_client]
             expected_calls = []
@@ -587,7 +613,9 @@ class TestNtp(FilesystemMockingTestCase):
         m_which.return_value = None
         for distro in cc_ntp.distros:
             mycloud = self._get_cloud(distro)
-            distro_configs = cc_ntp.distro_ntp_client_configs(distro)
+            distro_configs = cc_ntp.distro_ntp_client_configs(
+                mycloud.distro, mycloud.distro.osfamily
+            )
             expected_client = mycloud.distro.preferred_ntp_clients[0]
             expected_cfg = distro_configs[expected_client]
             expected_calls = []
@@ -627,7 +655,9 @@ class TestNtp(FilesystemMockingTestCase):
         m_which.return_value = None
         for distro in cc_ntp.distros:
             mycloud = self._get_cloud(distro, sys_cfg=sys_cfg)
-            distro_configs = cc_ntp.distro_ntp_client_configs(distro)
+            distro_configs = cc_ntp.distro_ntp_client_configs(
+                mycloud.distro.name, mycloud.distro.osfamily
+            )
             expected_cfg = distro_configs[system_client]
             result = cc_ntp.select_ntp_client(None, mycloud.distro)
             self.assertEqual(sorted(expected_cfg), sorted(result))
@@ -643,7 +673,9 @@ class TestNtp(FilesystemMockingTestCase):
         m_which.return_value = None
         for distro in cc_ntp.distros:
             mycloud = self._get_cloud(distro, sys_cfg=sys_cfg)
-            distro_configs = cc_ntp.distro_ntp_client_configs(distro)
+            distro_configs = cc_ntp.distro_ntp_client_configs(
+                mycloud.distro.name, mycloud.distro.osfamily
+            )
             expected_cfg = distro_configs[user_client]
             result = cc_ntp.select_ntp_client(user_client, mycloud.distro)
             self.assertEqual(sorted(expected_cfg), sorted(result))

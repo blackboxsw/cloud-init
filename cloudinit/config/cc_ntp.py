@@ -10,6 +10,7 @@ import copy
 import logging
 import os
 from textwrap import dedent
+from typing import Dict, Union
 
 from cloudinit import subp, temp_utils, templater, type_utils, util
 from cloudinit.cloud import Cloud
@@ -97,7 +98,7 @@ NTP_CLIENT_CONFIG = {
 }
 
 # This is Distro-specific configuration overrides of the base config
-DISTRO_CLIENT_CONFIG = {
+DISTRO_CLIENT_CONFIG: Dict[str, Dict[str, Dict[str, Union[str, list]]]] = {
     "alpine": {
         "chrony": {
             "confpath": "/etc/chrony/chrony.conf",
@@ -107,14 +108,6 @@ DISTRO_CLIENT_CONFIG = {
             "confpath": "/etc/ntp.conf",
             "packages": [],
             "service_name": "ntpd",
-        },
-    },
-    "centos": {
-        "ntp": {
-            "service_name": "ntpd",
-        },
-        "chrony": {
-            "service_name": "chronyd",
         },
     },
     "cos": {
@@ -154,7 +147,6 @@ DISTRO_CLIENT_CONFIG = {
         },
         "systemd-timesyncd": {
             "check_exe": "/usr/lib/systemd/systemd-timesyncd",
-            "confpath": "/etc/systemd/timesyncd.conf",
         },
     },
     "openbsd": {
@@ -172,18 +164,6 @@ DISTRO_CLIENT_CONFIG = {
             "check_exe": "/lib/systemd/systemd-timesyncd",
         },
     },
-    "opensuse": {
-        "chrony": {
-            "service_name": "chronyd",
-        },
-        "ntp": {
-            "confpath": "/etc/ntp.conf",
-            "service_name": "ntpd",
-        },
-        "systemd-timesyncd": {
-            "check_exe": "/usr/lib/systemd/systemd-timesyncd",
-        },
-    },
     "photon": {
         "chrony": {
             "service_name": "chronyd",
@@ -194,7 +174,7 @@ DISTRO_CLIENT_CONFIG = {
             "confpath": "/etc/systemd/timesyncd.conf",
         },
     },
-    "rhel": {
+    "redhat": {  # Shared by any redhat osfamily: centos, rocky etc
         "ntp": {
             "service_name": "ntpd",
         },
@@ -202,15 +182,7 @@ DISTRO_CLIENT_CONFIG = {
             "service_name": "chronyd",
         },
     },
-    "rocky": {
-        "ntp": {
-            "service_name": "ntpd",
-        },
-        "chrony": {
-            "service_name": "chronyd",
-        },
-    },
-    "sles": {
+    "suse": {
         "chrony": {
             "service_name": "chronyd",
         },
@@ -228,12 +200,6 @@ DISTRO_CLIENT_CONFIG = {
         },
     },
 }
-
-for distro in ("opensuse-microos", "opensuse-tumbleweed", "opensuse-leap"):
-    DISTRO_CLIENT_CONFIG[distro] = DISTRO_CLIENT_CONFIG["opensuse"]
-
-for distro in ("sle_hpc", "sle-micro"):
-    DISTRO_CLIENT_CONFIG[distro] = DISTRO_CLIENT_CONFIG["sles"]
 
 # The schema definition for each cloud-config module is a strict contract for
 # describing supported configuration parameters for each cloud-config section.
@@ -321,17 +287,21 @@ REQUIRED_NTP_CONFIG_KEYS = frozenset(
 )
 
 
-def distro_ntp_client_configs(distro):
+def distro_ntp_client_configs(distro: str, osfamily: str):
     """Construct a distro-specific ntp client config dictionary by merging
        distro specific changes into base config.
 
     @param distro: String providing the distro class name.
+    @param osfamily: String providing the osfamily a distro belongs in.
+                     Only used if no matching distro is found
     @returns: Dict of distro configurations for ntp clients.
     """
     dcfg = DISTRO_CLIENT_CONFIG
     cfg = copy.copy(NTP_CLIENT_CONFIG)
     if distro in dcfg:
         cfg = util.mergemanydict([cfg, dcfg[distro]], reverse=True)
+    elif osfamily in dcfg:
+        cfg = util.mergemanydict([cfg, dcfg[osfamily]], reverse=True)
     return cfg
 
 
@@ -345,7 +315,7 @@ def select_ntp_client(ntp_client, distro):
     """
 
     # construct distro-specific ntp_client_config dict
-    distro_cfg = distro_ntp_client_configs(distro.name)
+    distro_cfg = distro_ntp_client_configs(distro.name, distro.osfamily)
 
     # user specified client, return its config
     if ntp_client and ntp_client != "auto":
@@ -583,6 +553,28 @@ def supplemental_schema_validation(ntp_config):
         )
 
 
+def get_template_file_by_distro_or_family(ntp_cfg, cloud):
+    """Get matching template file based on distro or fallback to osfamily"""
+    template_fn = None
+    if not ntp_cfg.get("template"):
+        # Prioritize cloud.distro.name over osfamily
+        for tmpl_source in (cloud.distro.name, cloud.distro.osfamily):
+            template_name = ntp_cfg.get("template_name").replace(
+                "{distro}", tmpl_source
+            )
+            template_fn = cloud.get_template_filename(
+                template_name, log_warnings=False
+            )
+            if template_fn:
+                break
+        if not template_fn:
+            msg = "No template found, not rendering %s" % ntp_cfg.get(
+                "template_name"
+            )
+            raise RuntimeError(msg)
+    return template_fn
+
+
 def handle(name: str, cfg: Config, cloud: Cloud, args: list) -> None:
     """Enable and configure ntp."""
     if "ntp" not in cfg:
@@ -619,19 +611,9 @@ def handle(name: str, cfg: Config, cloud: Cloud, args: list) -> None:
     supplemental_schema_validation(ntp_client_config)
     rename_ntp_conf(confpath=ntp_client_config.get("confpath"))
 
-    template_fn = None
-    if not ntp_client_config.get("template"):
-        template_name = ntp_client_config.get("template_name").replace(
-            "{distro}", cloud.distro.name
-        )
-        template_fn = cloud.get_template_filename(template_name)
-        if not template_fn:
-            msg = (
-                "No template found, not rendering %s"
-                % ntp_client_config.get("template_name")
-            )
-            raise RuntimeError(msg)
-
+    template_fn = get_template_file_by_distro_or_family(
+        ntp_client_config, cloud
+    )
     LOG.debug("service_name: %s", ntp_client_config.get("service_name"))
     LOG.debug("servers: %s", ntp_cfg.get("servers", []))
     LOG.debug("pools: %s", ntp_cfg.get("pools", []))

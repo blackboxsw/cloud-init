@@ -59,14 +59,15 @@ class Cloud:
     def run(self, name, functor, args, freq=None, clear_on_fail=False):
         return self._runners.run(name, functor, args, freq, clear_on_fail)
 
-    def get_template_filename(self, name):
+    def get_template_filename(self, name, log_warnings=False):
         fn = self.paths.template_tpl % (name)
         if not os.path.isfile(fn):
-            LOG.warning(
-                "No template found in %s for template named %s",
-                os.path.dirname(fn),
-                name,
-            )
+            if log_warnings:
+                LOG.warning(
+                    "No template found in %s for template named %s",
+                    os.path.dirname(fn),
+                    name,
+                )
             return None
         return fn
 
