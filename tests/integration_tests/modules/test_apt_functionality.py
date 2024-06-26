@@ -50,7 +50,8 @@ apt:
     test_keyserver:
       keyid: 110E21D8B0E2A1F0243AF6820856F197B892ACEA
       keyserver: keyserver.ubuntu.com
-      source: "deb http://ppa.launchpad.net/canonical-kernel-team/ppa/ubuntu $RELEASE main"
+      # Hard-code noble as devel releases may not see new packages for some time
+      source: "deb http://ppa.launchpad.net/canonical-kernel-team/ppa/ubuntu noble main"
     test_ppa:
       keyid: 441614D8
       keyserver: keyserver.ubuntu.com
@@ -454,7 +455,8 @@ apt:
     test_keyserver:
       keyid: 110E21D8B0E2A1F0243AF6820856F197B892ACEA
       keyserver: keyserver.ubuntu.com
-      source: "deb http://ppa.launchpad.net/canonical-kernel-team/ppa/ubuntu $RELEASE main"
+      # Hard-code noble as devel releases may not see new packages for some time
+      source: "deb http://ppa.launchpad.net/canonical-kernel-team/ppa/ubuntu noble main"
     test_ppa:
       keyid: 441614D8
       keyserver: keyserver.ubuntu.com
