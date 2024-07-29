@@ -1,4 +1,4 @@
-documentation:
+documentation1:
 - changed-files:
   - any-glob-to-any-file: 'doc/*'
 - base-branch: 'main'
