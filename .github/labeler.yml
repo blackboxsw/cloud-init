@@ -1,5 +1,4 @@
 documentation:
 - changed-files:
-  - any-glob-to-any-file:
-    - doc/*
+  - any-glob-to-any-file: 'doc/*'
 - base-branch: 'main'
