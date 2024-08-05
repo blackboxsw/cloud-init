@@ -193,7 +193,19 @@ def read_ftps(url: str, timeout: float = 5.0, **kwargs: dict) -> "FtpResponse":
                 passwd=url_parts.password or "",
             )
             LOG.debug("Reading file: %s", url_parts.path)
-            ftp.retrbinary(f"RETR {url_parts.path}", callback=buffer.write)
+            try:
+                ftp.retrbinary(f"RETR {url_parts.path}", callback=buffer.write)
+            except ftplib.all_errors as e:
+                code = ftp_get_return_code_from_exception(e)
+                raise UrlError(
+                    cause=(
+                        "Reading file from ftp server"
+                        f" failed for url {url} [{code}]"
+                    ),
+                    code=code,
+                    headers=None,
+                    url=url,
+                ) from e
             response = FtpResponse(buffer.getvalue(), url)
             LOG.debug("Closing connection")
             ftp.close()
