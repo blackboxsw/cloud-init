@@ -39,8 +39,7 @@ jobs:
           git remote add upstream https://git.launchpad.net/cloud-init
           git fetch upstream main
           git checkout upstream/main
-          git branch
-          git checkout ${{ github.head_ref }} -- debian
+          git merge ${{ github.sha }}
           quilt push -a
           tox -e py3
           quilt pop -a
