@@ -36,8 +36,10 @@ jobs:
 
       - name: 'Daily recipe: quilt patches apply successfully and tests run'
         run: |
-          git checkout main
-          git fetch origin main
+          git remote add upstream https://git.launchpad.net/cloud-init
+          git checkout upstream/main
+          git fetch upstream main
+          git branch
           git checkout ${{ github.head_ref }} -- debian
           quilt push -a
           tox -e py3
