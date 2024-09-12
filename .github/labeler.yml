@@ -10,4 +10,4 @@ packaging:
   - changed-files:
     - any-glob-to-any-file:
       - 'debian/**'
-  - base-branch: ['ubuntu/**']
+  - base-branch: ['ubuntu/*']
