@@ -19,7 +19,7 @@ import sys
 import traceback
 import logging
 import yaml
-from typing import Tuple, Callable
+from typing import Optional, Tuple, Callable, Union
 
 from cloudinit import netinfo
 from cloudinit import signal_handler
@@ -39,6 +39,7 @@ from cloudinit.cmd.devel import read_cfg_paths
 from cloudinit.config import cc_set_hostname
 from cloudinit.config.modules import Modules
 from cloudinit.config.schema import validate_cloudconfig_schema
+from cloudinit.lifecycle import log_with_downgradable_level
 from cloudinit.reporting import events
 from cloudinit.settings import (
     PER_INSTANCE,
@@ -46,6 +47,8 @@ from cloudinit.settings import (
     PER_ONCE,
     CLOUD_CONFIG,
 )
+
+Reason = str
 
 # Welcome message template
 WELCOME_MSG_TPL = (
@@ -334,6 +337,90 @@ def _should_bring_up_interfaces(init, args):
     return not args.local
 
 
+def _should_wait_via_cloud_config(
+    raw_config: Optional[Union[str, bytes]]
+) -> Tuple[bool, Reason]:
+    if not raw_config:
+        return False, "no configuration found"
+
+    # If our header is anything other than #cloud-config, wait
+    possible_header: Union[bytes, str] = raw_config.strip()[:13]
+    if isinstance(possible_header, str):
+        decoded_header = possible_header
+    elif isinstance(possible_header, bytes):
+        try:
+            decoded_header = possible_header.decode("utf-8")
+        except UnicodeDecodeError:
+            return True, "Binary user data found"
+    if not decoded_header.startswith("#cloud-config"):
+        return True, "non-cloud-config user data found"
+
+    try:
+        parsed_yaml = yaml.safe_load(raw_config)
+    except Exception as e:
+        log_with_downgradable_level(
+            logger=LOG,
+            version="24.4",
+            requested_level=logging.WARNING,
+            msg="Unexpected failure parsing userdata: %s",
+            args=e,
+        )
+        return True, "failed to parse user data as yaml"
+
+    # These all have the potential to require network access, so we should wait
+    if "write_files" in parsed_yaml and any(
+        "source" in item for item in parsed_yaml["write_files"]
+    ):
+        return True, "write_files with source found"
+    if parsed_yaml.get("bootcmd"):
+        return True, "bootcmd found"
+    if parsed_yaml.get("random_seed", {}).get("command"):
+        return True, "random_seed command found"
+    if parsed_yaml.get("mounts"):
+        return True, "mounts found"
+    return False, "cloud-config does not contain network requiring elements"
+
+
+def _should_wait_on_network(
+    datasource: Optional[sources.DataSource],
+) -> Tuple[bool, Reason]:
+    """Determine if we should wait on network connectivity for cloud-init.
+
+    We need to wait if:
+    - We have no datasource
+    - We have user data that is anything other than cloud-config
+      - This can likely be further optimized in the future to include
+        other user data types
+    - We have user data that requires network access
+    """
+    if not datasource:
+        return True, "no datasource found"
+    user_should_wait, user_reason = _should_wait_via_cloud_config(
+        datasource.get_userdata_raw()
+    )
+    if user_should_wait:
+        return True, f"{user_reason} in user data"
+    vendor_should_wait, vendor_reason = _should_wait_via_cloud_config(
+        datasource.get_vendordata_raw()
+    )
+    if vendor_should_wait:
+        return True, f"{vendor_reason} in vendor data"
+    vendor2_should_wait, vendor2_reason = _should_wait_via_cloud_config(
+        datasource.get_vendordata2_raw()
+    )
+    if vendor2_should_wait:
+        return True, f"{vendor2_reason} in vendor data2"
+
+    return (
+        False,
+        (
+            f"user data: {user_reason}, "
+            f"vendor data: {vendor_reason}, "
+            f"vendor data2: {vendor2_reason}"
+        ),
+    )
+
+
 def main_init(name, args):
     deps = [sources.DEP_FILESYSTEM, sources.DEP_NETWORK]
     if args.local:
@@ -411,6 +498,9 @@ def main_init(name, args):
     mode = sources.DSMODE_LOCAL if args.local else sources.DSMODE_NETWORK
 
     if mode == sources.DSMODE_NETWORK:
+        if os.path.exists(init.paths.get_runpath(".wait-on-network")):
+            LOG.debug("Will wait for network connectivity before continuing")
+            init.distro.wait_for_network()
         existing = "trust"
         sys.stderr.write("%s\n" % (netinfo.debug_info()))
     else:
@@ -478,9 +568,25 @@ def main_init(name, args):
         # dhcp clients to advertize this hostname to any DDNS services
         # LP: #1746455.
         _maybe_set_hostname(init, stage="local", retry_stage="network")
+
     init.apply_network_config(bring_up=bring_up_interfaces)
 
     if mode == sources.DSMODE_LOCAL:
+        should_wait, reason = _should_wait_on_network(init.datasource)
+        if should_wait:
+            LOG.debug(
+                "Network connectivity determined necessary for "
+                "cloud-init's network stage. Reason: %s",
+                reason,
+            )
+            util.write_file(init.paths.get_runpath(".wait-on-network"), "")
+        else:
+            LOG.debug(
+                "Network connectivity determined unnecessary for "
+                "cloud-init's network stage. %s",
+                reason,
+            )
+
         if init.datasource.dsmode != mode:
             LOG.debug(
                 "[%s] Exiting. datasource %s not in local mode.",

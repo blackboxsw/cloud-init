@@ -30,6 +30,7 @@ from tests.integration_tests.util import (
     verify_clean_boot,
     verify_clean_log,
     verify_ordered_items_in_text,
+    wait_online_called,
 )
 
 USER_DATA = """\
@@ -540,6 +541,13 @@ class TestCombined:
     def test_unicode(self, class_client: IntegrationInstance):
         client = class_client
         assert "💩" == client.read_from_file("/var/tmp/unicode_data")
+
+    @pytest.mark.skipif(not IS_UBUNTU, reason="Ubuntu-only behavior")
+    def test_networkd_wait_online(self, class_client: IntegrationInstance):
+        client = class_client
+        assert not wait_online_called(
+            client.read_from_file("/var/log/cloud-init.log")
+        )
 
 
 @pytest.mark.user_data(USER_DATA)
