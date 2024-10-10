@@ -168,7 +168,11 @@ def verify_clean_boot(
             ignore_warnings,
             "Unable to disable SSH logins for opc given ssh_redirect_user",
         )
-
+    # Preserve platform-specific tracebacks expected
+    if isinstance(ignore_tracebacks, list):
+        ignore_tracebacks.extend(traceback_texts)
+    elif ignore_tracebacks is None:
+        ignore_tracebacks = traceback_texts
     _verify_clean_boot(
         instance,
         ignore_deprecations=ignore_deprecations,
