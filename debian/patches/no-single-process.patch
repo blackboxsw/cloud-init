@@ -6,7 +6,7 @@ Last-Update: 2024-08-02
 
 --- a/systemd/cloud-config.service.tmpl
 +++ b/systemd/cloud-config.service.tmpl
-@@ -10,14 +10,7 @@ ConditionEnvironment=!KERNEL_CMDLINE=clo
+@@ -10,14 +10,7 @@
  
  [Service]
  Type=oneshot
@@ -24,7 +24,7 @@ Last-Update: 2024-08-02
  
 --- a/systemd/cloud-final.service.tmpl
 +++ b/systemd/cloud-final.service.tmpl
-@@ -15,16 +15,10 @@ ConditionEnvironment=!KERNEL_CMDLINE=clo
+@@ -15,16 +15,10 @@
  
  [Service]
  Type=oneshot
@@ -45,7 +45,7 @@ Last-Update: 2024-08-02
  # Output needs to appear in instance console output
 --- a/systemd/cloud-init-local.service.tmpl
 +++ b/systemd/cloud-init-local.service.tmpl
-@@ -7,6 +7,7 @@ DefaultDependencies=no
+@@ -7,6 +7,7 @@
  {% endif %}
  Wants=network-pre.target
  After=hv_kvp_daemon.service
@@ -53,7 +53,7 @@ Last-Update: 2024-08-02
  {% if variant in ["almalinux", "cloudlinux", "rhel"] %}
  Requires=dbus.socket
  After=dbus.socket
-@@ -37,14 +38,7 @@ ExecStartPre=/bin/mkdir -p /run/cloud-in
+@@ -37,14 +38,7 @@
  ExecStartPre=/sbin/restorecon /run/cloud-init
  ExecStartPre=/usr/bin/touch /run/cloud-init/enabled
  {% endif %}
@@ -125,7 +125,7 @@ Last-Update: 2024-08-02
 -WantedBy=cloud-init.target
 --- a/systemd/cloud-init-network.service.tmpl
 +++ /dev/null
-@@ -1,64 +0,0 @@
+@@ -1,66 +0,0 @@
 -## template:jinja
 -[Unit]
 -# https://docs.cloud-init.io/en/latest/explanation/boot.html
@@ -137,7 +137,9 @@ Last-Update: 2024-08-02
 -Wants=sshd-keygen.service
 -Wants=sshd.service
 -After=cloud-init-local.service
+-{% if variant not in ["ubuntu"] %}
 -After=systemd-networkd-wait-online.service
+-{% endif %}
 -{% if variant in ["ubuntu", "unknown", "debian"] %}
 -After=networking.service
 -{% endif %}
@@ -192,7 +194,7 @@ Last-Update: 2024-08-02
 -WantedBy=cloud-init.target
 --- /dev/null
 +++ b/systemd/cloud-init.service.tmpl
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,56 @@
 +## template:jinja
 +[Unit]
 +# https://docs.cloud-init.io/en/latest/explanation/boot.html
@@ -204,7 +206,6 @@ Last-Update: 2024-08-02
 +Wants=sshd-keygen.service
 +Wants=sshd.service
 +After=cloud-init-local.service
-+After=systemd-networkd-wait-online.service
 +{% if variant in ["ubuntu", "unknown", "debian"] %}
 +After=networking.service
 +{% endif %}
@@ -252,7 +253,7 @@ Last-Update: 2024-08-02
 +WantedBy=cloud-init.target
 --- a/cloudinit/cmd/status.py
 +++ b/cloudinit/cmd/status.py
-@@ -321,9 +321,8 @@ def systemd_failed(wait: bool) -> bool:
+@@ -321,9 +321,8 @@
      for service in [
          "cloud-final.service",
          "cloud-config.service",
@@ -265,7 +266,7 @@ Last-Update: 2024-08-02
              stdout = query_systemctl(
 --- a/cloudinit/config/cc_mounts.py
 +++ b/cloudinit/config/cc_mounts.py
-@@ -521,7 +521,7 @@ def handle(name: str, cfg: Config, cloud
+@@ -521,7 +521,7 @@
      # fs_spec, fs_file, fs_vfstype, fs_mntops, fs-freq, fs_passno
      uses_systemd = cloud.distro.uses_systemd()
      default_mount_options = (
@@ -303,7 +304,7 @@ Last-Update: 2024-08-02
 +After=cloud-init-local.service cloud-init.service
 --- a/tests/unittests/config/test_cc_mounts.py
 +++ b/tests/unittests/config/test_cc_mounts.py
-@@ -566,9 +566,9 @@ class TestFstabHandling:
+@@ -566,9 +566,9 @@
              LABEL=keepme	none	ext4	defaults	0	0
              LABEL=UEFI
              /dev/sda4	/mnt2	auto	nofail,comment=cloudconfig	1	2
