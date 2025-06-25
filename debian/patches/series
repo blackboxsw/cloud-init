@@ -6,3 +6,4 @@ expire-on-hashed-users.patch
 retain-netplan-world-readable.patch
 netplan99-cannot-use-default.patch
 cpick-8c3ae1bb-fix-Don-t-attempt-to-identify-non-x86-OpenStack
+cpick-8b45006c-fix-Make-hotplug-socket-writable-only-by-root-25
