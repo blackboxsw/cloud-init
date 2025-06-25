@@ -2,6 +2,8 @@ cloud-init (23.1.2-0ubuntu0~18.04.1+esm1) UNRELEASED; urgency=medium
 
   * cherry-pick 8c3ae1bb: fix: Don't attempt to identify non-x86 OpenStack
     instances (LP: #2069607) (CVE-2024-6174)
+  * cherry-pick 8b45006c: fix: Make hotplug socket writable only by root
+    (LP: #2114229) (CVE-2024-11584)
 
  -- Chad Smith <chad.smith@canonical.com>  Wed, 25 Jun 2025 12:16:15 -0600
 
