@@ -1,4 +1,4 @@
-cloud-init (23.1.2-0ubuntu0~18.04.1+esm1) UNRELEASED; urgency=medium
+cloud-init (23.1.2-0ubuntu0~18.04.1+esm1) bionic-security; urgency=medium
 
   * d/cloud-init-base.postinst: move existing hotplug-cmd fifo to root-only
     share dir (LP: #2114229) (CVE-2024-11584)
@@ -9,7 +9,7 @@ cloud-init (23.1.2-0ubuntu0~18.04.1+esm1) UNRELEASED; urgency=medium
   * cherry-pick e3f42adc: fix: strict disable in ds-identify on no
     datasources found (LP: #2069607) (CVE-2024-6174)
 
- -- Chad Smith <chad.smith@canonical.com>  Wed, 25 Jun 2025 12:18:54 -0600
+ -- Chad Smith <chad.smith@canonical.com>  Wed, 25 Jun 2025 15:46:01 -0600
 
 cloud-init (23.1.2-0ubuntu0~18.04.1) bionic; urgency=medium
 
