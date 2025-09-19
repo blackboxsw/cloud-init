@@ -1,10 +1,10 @@
-name: ShellCheck Debian package scripts
+name: ShellCheck Debian package scripts, error on new lints
 
 env:
   # This is a space separated string for multiple globs
   # Do not use curly braces as they will be treated as literal string in `git ls-files ${GLOBS_TO_SHELLCHECK}`
   # Assumption in this workflow: the resolved filepaths do not contain spaces.
-  GLOBS_TO_SHELLCHECK: "**/*.postinst **/*.postrm **/*.preinst **/*.prerm"
+  GLOBS_TO_SHELLCHECK: "debian/cherry-pick debian/*.config debian/*.postinst debian/*.postrm debian/*.preinst debian/*.prerm packages/debian/*.postrm"
 
 on:
   pull_request:
@@ -25,8 +25,7 @@ concurrency:
 
 defaults:
   run:
-    # Using bash instead of the usual sh in the other workflows in order to support the globstar **
-    shell: bash -ex {0}
+    shell: bash -e {0}
 
 # Note: No need to specify the shell option in the shellcheck command
 # as shellcheck reads and uses the shebang at the top of the linted scripts.
@@ -50,19 +49,60 @@ jobs:
         env:
           ALL_CHANGED_FILES: ${{ steps.matching-changed-files.outputs.all_changed_and_modified_files }}
         run: |
-          shopt -s globstar
           if [ -z "${ALL_CHANGED_FILES}" ]
           then
             echo "There are no changed files in the repo which match the glob pattern \'${GLOBS_TO_SHELLCHECK}\' so shellcheck will not run"
           else
             echo "The changed and modified (including deleted) files are ${ALL_CHANGED_FILES}"
             echo "The globs used are ${GLOBS_TO_SHELLCHECK}"
-            MATCHING_CHANGED_FILES=$(git ls-files ${ALL_CHANGED_FILES} | tr '\n' ' ') #filter out deleted files
-            echo "The matching and changed files are ${MATCHING_CHANGED_FILES}"
-            if [ -z "${MATCHING_CHANGED_FILES}" ]
-            then
-              echo "There are no changed files in the repo which match the glob pattern \'${GLOBS_TO_SHELLCHECK}\' so shellcheck will not run"
-            else
-              shellcheck ${MATCHING_CHANGED_FILES}
+
+            # Define high-water marks for expected lint info and warn levels
+            declare -A INFO_LIMITS WARN_LIMITS
+            INFO_LIMITS["debian/cherry-pick"]=5
+            WARN_LIMITS["debian/cherry-pick"]=4
+            INFO_LIMITS["debian/cloud-init-base.config"]=3
+            WARN_LIMITS["debian/cloud-init-base.config"]=7
+            INFO_LIMITS["debian/cloud-init-base.postinst"]=16
+            WARN_LIMITS["debian/cloud-init-base.postinst"]=17
+            INFO_LIMITS["debian/cloud-init-base.preinst"]=15
+            WARN_LIMITS["debian/cloud-init-base.preinst"]=21
+
+            ALL_NEW_LINTS=""
+            for script_name in ${ALL_CHANGED_FILES}; do
+              NEW_SCRIPT_LINTS=""
+              if [ -f ${script_name} ]; then
+                # Only error when lint counts are greater than limits
+                info_limit=0
+                warn_limit=0
+                # Respect and defined limits, otherwise exit non-zero
+                if [[ -v INFO_LIMITS[$script_name] ]]; then
+                  info_limit=${INFO_LIMITS[$script_name]}
+                fi
+                if [[ -v WARN_LIMITS[$script_name] ]]; then
+                  warn_limit=${WARN_LIMITS[$script_name]}
+                fi
+                shellcheck ${script_name} > output.txt || true
+                lint_info_count=$( grep -c '(info)' output.txt ) || true
+                lint_warn_count=$( grep -c '(warning)' output.txt ) || true
+                lint_error_count=$( grep -c '(error)' output.txt ) || true
+                if [ $lint_error_count -gt 0 ]; then
+                  NEW_SCRIPT_LINTS+="shellcheck $script_name contains errors.\n"
+                fi
+                if [ $lint_info_count -gt $info_limit ]; then
+                  NEW_SCRIPT_LINTS+="shellcheck $script_name- too many (info) lints: $lint_info_count\n"
+                fi
+                if [ $lint_warn_count -gt $warn_limit ]; then
+                  NEW_SCRIPT_LINTS+="shellcheck $script_name- too many (warning) lints: $lint_warn_count\n"
+                fi
+              fi
+              if [ -n "$NEW_SCRIPT_LINTS" ]; then
+                  ALL_NEW_LINTS+=$NEW_SCRIPT_LINTS
+                  ALL_NEW_LINTS+=$(cat output.txt)
+              fi
+            done
+            if [ -n "${ALL_NEW_LINTS}" ]; then
+              echo -e "${ALL_NEW_LINTS}"
+              exit 1
             fi
           fi
+          echo "SUCCESS: no new shellcheck lints encountered"
