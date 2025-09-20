@@ -25,7 +25,7 @@ concurrency:
 
 defaults:
   run:
-    shell: bash -ex {0}
+    shell: bash -e {0}
 
 # Note: No need to specify the shell option in the shellcheck command
 # as shellcheck reads and uses the shebang at the top of the linted scripts.
