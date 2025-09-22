@@ -15,9 +15,6 @@ on:
     # then the second PR will show these checks that were triggered by the first PR but not the second PR.
     branches:
       - 'ubuntu/**'
-  push:
-    branches:
-      - 'ubuntu/**'
 
 concurrency:
   group: 'ci-${{ github.workflow }}-${{ github.ref }}'
