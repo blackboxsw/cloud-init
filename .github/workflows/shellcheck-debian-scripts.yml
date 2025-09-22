@@ -4,7 +4,7 @@ env:
   # This is a space separated string for multiple globs chad
   # Do not use curly braces as they will be treated as literal string in `git ls-files ${GLOBS_TO_SHELLCHECK}`
   # Assumption in this workflow: the resolved filepaths do not contain spaces.
-  GLOBS_TO_SHELLCHECK: "**/*.postinst **/*.postrm **/*.preinst **/*.prerm"
+  GLOBS_TO_SHELLCHECK: "debian/cherry-pick debian/*.config debian/*.postinst debian/*.postrm debian/*.preinst debian/*.prerm packages/debian/*.postrm"
 
 on:
   pull_request:
