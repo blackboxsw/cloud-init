@@ -262,4 +262,4 @@ examples of more common use cases.
 
 .. _QEMU: https://www.qemu.org
 .. _install instructions: https://www.qemu.org/download/#linux
-.. _Ubuntu LTS: https://wiki.ubuntu.com/Releases
+.. _Ubuntu LTS: https://documentation.ubuntu.com/project/release-team/list-of-releases/
