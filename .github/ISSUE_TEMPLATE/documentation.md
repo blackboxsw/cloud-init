@@ -6,4 +6,6 @@ labels: documentation, new
 ---
 
 # Documentation request
+
+## Affected URL, command-line or tool
 <!-- Please include affected doc URL, command line utility or tool -->

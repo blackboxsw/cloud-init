@@ -37,6 +37,22 @@ For documentation issues, you can submit an issue in GitHub using the
 automatically include the URL of the page you came from, so all you need to
 do is describe the issue you've found.
 
+Issue requirements
+------------------
+We respectively request the following details to streamline our ability
+to help triage and resolve issues. Without this criteria met, we will
+mark label an issue `Incomplete` until the following details are provided.
+
+A reviewable issue must contain:
+1. operating system distribution name and release
+2. cloud provider, platform or installer type
+3. cloud-init packaged version
+4. document any applicable user-data, configuration and commands or procedure to reproduce this problem and the unmet expectations demonstrated by the issue
+5. An excerpt of /var/log/cloud-init.log in the case of tracebacks or errors or attach the gzipped logs from the command `cloud-init collect-logs`
+
+Documentation issues or enhancement requests need only clearly describe the problem or enhancement.
+
+
 No-code or low-code options
 ===========================
 

@@ -5,15 +5,18 @@ labels: bug, new
 ---
 
 # Bug report
-<!-- bug description explaining unmet expectation or use-case -->
-
-## Steps to reproduce the problem
-<!--Provide any applicable user-data, config, commandline or procedure to reproduce this problem -->
 
 ## Environment details
 - Cloud-init version:
 - Operating System Distribution:
 - Cloud provider, platform or installer type:
+- Any applicable user-data:
+
+## Description
+<!-- bug description explaining unmet expectation or use-case -->
+
+## Steps to reproduce the problem
+<!--Provide any applicable user-data, config, commandline or procedure to reproduce this problem -->
 
 ## cloud-init logs
 <!--
