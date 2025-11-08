@@ -26,6 +26,8 @@ When you submit your proposed fix for an issue, including the issue number in
 the PR commit message will link the issue to your proposed fix. This is the
 ``Fixes GH-0000`` line in the template PR commit message.
 
+.. _find_issues-Creating an issue:
+
 Creating an issue
 =================
 
@@ -47,8 +49,10 @@ A reviewable issue must contain:
 1. operating system distribution name and release
 2. cloud provider, platform or installer type
 3. cloud-init packaged version
-4. document any applicable user-data, configuration and commands or procedure to reproduce this problem and the unmet expectations demonstrated by the issue
-5. An excerpt of /var/log/cloud-init.log in the case of tracebacks or errors or attach the gzipped logs from the command `cloud-init collect-logs`
+4. document applicable user-data, configuration and commands or procedure
+to reproduce the problem and the unmet expectations demonstrated by the issue
+5. An excerpt of /var/log/cloud-init.log in the case of tracebacks or errors orw
+attach the gzipped logs from the command `cloud-init collect-logs`
 
 Documentation issues or enhancement requests need only clearly describe the problem or enhancement.
 
