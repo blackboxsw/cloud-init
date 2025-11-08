@@ -1,7 +1,8 @@
 Submit your first pull request
 ******************************
 
-Follow these steps prior to submitting  your first pull request to cloud-init:
+Follow these steps prior to submitting your first pull request (PR) to
+cloud-init:
 
 Setup Git and GitHub appropriately
 ==================================
@@ -42,6 +43,25 @@ Run unit tests
 Run unit tests and lint/formatting checks with `tox`_: ::
 
     tox
+
+Pull request review requirements
+================================
+
+In order for upstream to effectively review and merge a PR the following
+criteria must be met:
+
+1. The pull request description must contain the following values:
+   a. A comprehensive commit message to be used when merging the pull
+      request which descibes motivations and all applicable functional changes
+      within the pull request
+   b. For bug fixes, a footer line and existing issue with the format
+      `Fixes GH-<number>` or `Related GH-<number>` which has been created per
+       :ref:`issue requirements<find_issues-Creating>`
+2. Unit tests in tests/unittests exercising updated behavior
+3. Integration test extensions in tests/integraton_tests where possible
+4. Test procedure to validate behavior changes or example cloud-init.log or config showing success on platforms
+5. Documentation updates when changing: user-data formats, cloudinit.config modules, datasource or operating system distribution updates
+6. The pull request must pass all mandatory CI checkers
 
 Read our code review process
 ============================
