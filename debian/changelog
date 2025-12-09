@@ -1,5 +1,6 @@
 cloud-init (25.3-0ubuntu1~22.04.2) UNRELEASED; urgency=medium
 
+  * d/rules: set DOWNSTREAM_VERSION in cloudinit/meson_version.py
   * refresh patches:
     - d/p/no-nocloud-network.patch
     - d/p/no-single-process.patch
