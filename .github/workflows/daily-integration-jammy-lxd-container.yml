@@ -1,0 +1,11 @@
+name: "Daily: Integration Jammy lxc_container"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  jammy:
+    uses: ./.github/workflows/_lxc-common.yml
+    with:
+      ubuntu_release: jammy
+
