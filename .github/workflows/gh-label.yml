@@ -1,6 +1,6 @@
 name: "GH: Labels"
 on:
-  - pull_request_target:
+  - pull_request_target
   - pull_request:
 
 jobs:
