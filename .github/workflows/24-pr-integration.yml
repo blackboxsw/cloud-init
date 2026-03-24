@@ -46,7 +46,7 @@ jobs:
       - name: Build package
         run: |
           DEB_BUILD_OPTIONS=nocheck ./packages/bddeb -d --release ${{ env.RELEASE }}
-          DEB_PKG=cloud-init-base-PR${GITHUB_REFNAME%/*}-${{ env.RELEASE }}.deb
+          DEB_PKG=cloud-init-base-PR${GITHUB_REF_NAME%/*}-${{ env.RELEASE }}.deb
           cp cloud-init-base*.deb ${{ runner.temp }}/$DEB_PKG
           echo "DEB_PKG=${DEB_PKG}" >> $GITHUB_ENV
       - name: Archive debs as artifacts
