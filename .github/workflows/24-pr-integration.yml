@@ -45,7 +45,12 @@ jobs:
       - name: Build package
         run: |
           DEB_BUILD_OPTIONS=nocheck ./packages/bddeb -d --release ${{ env.RELEASE }}
-          cp cloud-init-base*.deb ${{ runner.temp }}
+          PKG_VERSION=`git describe --abbrev=8`
+          mv cloud-init-base*deb cloud-init-base-PR${{ github.event.pull_request.number }}-$PKG_VERSION.deb
+          DEB_PKG="cloud-init-base-PR${{ github.event.pull_request.number }}-$PKG_VERSION.deb
+          mv cloud-init-base*deb $DEB_PKG
+          cp $DEB_PKG ${{ runner.temp }}
+          echo "DEB_PKG=$DEB_PKG" >> $GITHUB_ENV
       - name: Archive debs as artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
@@ -59,8 +64,8 @@ jobs:
       - name: Verify deb package
         run: |
           ls -hal '${{ runner.temp }}'
-          echo ${{ runner.temp }}/cloud-init-base*.deb || true
-          ls -hal ${{ runner.temp }}/cloud-init-base*.deb || true
+          echo ${{ runner.temp }}/${DEB_PKG} || true
+          ls -hal ${{ runner.temp }}/${DEB_PKG} || true
       - name: Set up Pycloudlib
         run: |
           ssh-keygen -P "" -q -f ~/.ssh/id_rsa
