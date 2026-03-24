@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: 'cloud-init-${{ env.RELEASE }}-deb'
-          path: '${{ runner.temp }}/cloud-init-base*.deb'
+          path: '${{ runner.temp }}/${{ env.DEB_PKG }}'
           retention-days: 3
       - name: Setup LXD
         uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee  # v1
@@ -70,4 +70,4 @@ jobs:
           echo "[lxd]" > /home/$USER/.config/pycloudlib.toml
       - name: Run integration Tests
         run: |
-          CLOUD_INIT_CLOUD_INIT_SOURCE="$(ls ${{ runner.temp }}/cloud-init-base*.deb)" CLOUD_INIT_OS_IMAGE=${{ env.RELEASE }} tox -e integration-tests-ci -- --color=yes tests/integration_tests/
+          CLOUD_INIT_CLOUD_INIT_SOURCE="$(ls ${{ runner.temp }}/${{ env.DEB_PKG }})" CLOUD_INIT_OS_IMAGE=${{ env.RELEASE }} tox -e integration-tests-ci -- --color=yes tests/integration_tests/
