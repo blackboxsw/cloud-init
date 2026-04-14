@@ -1,3 +1,9 @@
+cloud-init (26.2~1g275e0e03-0ubuntu1~22.04.1) UNRELEASED; urgency=medium
+
+  * d/control: add python3-pyfakefs for testing
+
+ -- Chad Smith <chad.smith@canonical.com>  Tue, 14 Apr 2026 11:09:34 -0600
+
 cloud-init (26.1-0ubuntu1~22.04.1) jammy; urgency=medium
 
   * d/p/0001-Revert-fix-DNS-resolution-performance-regression-dur.patch revert Ec2 URL change 
