@@ -62,12 +62,12 @@ on:
 jobs:
   integration-test:
     runs-on: ubuntu-latest
-    if: github.repository == 'canonical/cloud-init'
 
     env:
       REQUIRED_SECRET: ${{ secrets.PYCLOUDLIB_TOML }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+      CLOUD_INIT_KEEP_INSTANCE: 1
       CLOUD_INIT_PLATFORM: ${{ inputs.platform }}
       CLOUD_INIT_OS_IMAGE: ${{ inputs.release }}
       CLOUD_INIT_OS_IMAGE_TYPE: ${{ inputs.image_type }}
