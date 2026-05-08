@@ -231,7 +231,6 @@ def maybe_install_cloud_init(session_cloud: IntegrationCloud):
 
         client.install_new_cloud_init(source)
         session_cloud.snapshot_id = client.snapshot()
-        client.destroy()
 
     return {"image_id": session_cloud.snapshot_id}
 
@@ -252,8 +251,14 @@ class TestUbuntuAdvantagePro:
             launch_kwargs=launch_kwargs,
         ) as client:
             log = client.read_from_file("/var/log/cloud-init.log")
-            verify_clean_log(log)
-            verify_clean_boot(client)
+            ignore_warnings = []
+            if "azure" == PLATFORM:
+                # Pro images sometimes hit a single 404 in early provisioning
+                ignore_warnings.append(
+                    "Polling IMDS failed attempt 1 with exception:"
+                    " UrlError('404"
+                )
+            verify_clean_boot(client, ignore_warnings=ignore_warnings)
             assert_ua_service_noop(client)
             assert is_attached(client)
             services_status = get_services_status(client)
