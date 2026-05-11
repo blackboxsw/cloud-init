@@ -21,6 +21,7 @@
 .pc/
 .pytest_cache/
 .python-version
+.specs/
 .tox
 .venv/
 .vscode/
