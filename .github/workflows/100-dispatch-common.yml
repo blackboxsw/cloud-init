@@ -62,8 +62,6 @@ on:
 jobs:
   integration-test:
     runs-on: ubuntu-latest
-    if: github.repository == 'canonical/cloud-init'
-
     env:
       REQUIRED_SECRET: ${{ secrets.PYCLOUDLIB_TOML_B64 }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
