@@ -21,6 +21,17 @@ from cloudinit.templater import (
 )
 from cloudinit.util import load_json, load_text_file
 
+JUndefinedError: Type[Exception]
+try:
+    from jinja2.exceptions import UndefinedError as JUndefinedError
+    from jinja2.exceptions import SecurityError as JSecurityError
+    from jinja2.lexer import operator_re
+except ImportError:
+    # No jinja2 dependency
+    JUndefinedError = Exception
+    JSecurityError = Exception
+    operator_re = re.compile(r"[-.]")
+
 LOG = logging.getLogger(__name__)
 
 
@@ -140,7 +151,7 @@ def render_jinja_payload(payload, payload_fn, instance_data, debug=False):
         )
     try:
         rendered_payload = render_string(payload, instance_jinja_vars)
-    except (TypeError, exceptions.UndefinedError) as e:
+    except (TypeError, JUndefinedError, JSecurityError) as e:
         LOG.warning("Ignoring jinja template for %s: %s", payload_fn, str(e))
         return None
     warnings = [

@@ -24,6 +24,20 @@ from cloudinit import type_utils as tu
 from cloudinit import util
 from cloudinit.atomic_helper import write_file
 
+# After bionic EOL, mypy==1.0.0 will be able to type-analyse dynamic
+# base types, substitute this by:
+# JUndefined: typing.Type
+JUndefined: Any
+try:
+    from jinja2 import DebugUndefined as _DebugUndefined
+    from jinja2.sandbox import SandboxedEnvironment as JSandboxedEnvironment
+
+    JINJA_AVAILABLE = True
+    JUndefined = _DebugUndefined
+except (ImportError, AttributeError):
+    JINJA_AVAILABLE = False
+    JUndefined = object
+
 LOG = logging.getLogger(__name__)
 MISSING_JINJA_PREFIX = "CI_MISSING_JINJA_VAR/"
 
@@ -134,13 +148,13 @@ def detect_template(text):
         add = "\n" if content.endswith("\n") else ""
         try:
             with performance.Timed("Rendering jinja2 template"):
+                jinja_env = JSandboxedEnvironment(
+                    undefined=UndefinedJinjaVariable,
+                    trim_blocks=True,
+                    extensions=["jinja2.ext.do"],
+                )
                 return (
-                    Template(
-                        content,
-                        undefined=UndefinedJinjaVariable,
-                        trim_blocks=True,
-                        extensions=["jinja2.ext.do"],
-                    ).render(**params)
+                    jinja_env.from_string(content).render(**params)
                     + add
                 )
         except TemplateSyntaxError as template_syntax_error:
