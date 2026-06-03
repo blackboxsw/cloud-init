@@ -1,0 +1,25 @@
+name: cloud-init-dev
+base: ubuntu@24.04
+sdks:
+  - name: vscode-remote
+  - name: uv
+  - name: project-cloud-init-dev
+actions:
+  test: |
+    cd /project
+    tox -e py3 "$@"
+  test-fast: |
+    cd /project
+    tox -e py3-fast "$@"
+  lint: |
+    cd /project
+    tox -e check_format "$@"
+  format: |
+    cd /project
+    tox -e do_format "$@"
+  mypy: |
+    cd /project
+    tox -e mypy "$@"
+  docs: |
+    cd /project
+    tox -e doc "$@"

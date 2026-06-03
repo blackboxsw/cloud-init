@@ -1,0 +1,7 @@
+#!/bin/sh
+cd /project
+uv venv .venv
+uv pip install \
+    -r requirements.txt \
+    -r requirements-all.txt \
+    -r test-requirements.txt
