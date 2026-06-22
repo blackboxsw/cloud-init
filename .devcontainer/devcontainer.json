@@ -1,0 +1,34 @@
+{
+  "name": "cloud-init",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "containerUser": "ubuntu",
+  "runArgs": [
+	 "--userns=keep-id:uid=1000,gid=1000"
+  ],
+  "updateRemoteUserUID": false,
+  "postCreateCommand": "pip3 install --user --upgrade pip tox && pip3 install --user -r requirements.txt -r requirements-all.txt -r test-requirements.txt -r integration-requirements.txt -r doc-requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "tests/unittests"
+        ],
+        "python.formatting.provider": "none",
+        "editor.formatOnSave": false,
+        "files.trimTrailingWhitespace": true
+      }
+    }
+  }
+}
