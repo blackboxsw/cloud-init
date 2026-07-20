@@ -2,7 +2,8 @@
 # PyPI requirements for cloud-init integration testing
 # https://docs.cloud-init.io/en/latest/development/integration_tests.html
 #
-pycloudlib>=1!10.0.2,<1!11
+git+https://github.com/blackboxsw/pycloudlib.git@5bce036cba6db1b9d57a0ec61099086295f0225d
+
 
 pytest-timeout
 
