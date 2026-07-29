@@ -117,12 +117,19 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox distro-info-data devscripts
       - name: Run integration Tests
+        id: run_integration_tests
         env:
           CLOUD_INIT_LOCAL_LOG_PATH: ${{ github.workspace }}/cloud_init_test_logs
           PYCLOUDLIB_CONFIG: ${{ runner.temp }}/pycloudlib.toml
         run: |
-          tox -e integration-tests -- --junitxml="${{ github.workspace }}/junit-report.xml" --color=yes ${{ inputs.filter_tests || 'tests/integration_tests' }}
+          set -o pipefail
+          tox -e integration-tests -- \
+            --junitxml="${{ github.workspace }}/junit-report.xml" \
+            --color=yes \
+            ${{ inputs.filter_tests || 'tests/integration_tests' }} \
+            2>&1 | tee "${{ github.workspace }}/pytest.log"
       - name: Publish Test Report with Insights
+        id: publish_ctrf
         if: ${{ always() }}
         uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1.0.26
         with:
@@ -153,12 +160,74 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload failure artifacts
+        id: upload_failure_artifacts
         if: ${{ failure() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: failure-${{ github.job }}
           path: ${{ github.workspace }}/cloud_init_test_logs/
           retention-days: 2
+      - name: Write evidence manifest
+        id: write_evidence_manifest
+        if: ${{ always() }}
+        env:
+          EVIDENCE_MANIFEST: ${{ github.workspace }}/evidence-manifest.json
+          STEP_RUN_INTEGRATION_TESTS: ${{ steps.run_integration_tests.outcome }}
+          STEP_PUBLISH_CTRF: ${{ steps.publish_ctrf.outcome }}
+          STEP_UPLOAD_FAILURE_ARTIFACTS: ${{ steps.upload_failure_artifacts.outcome }}
+          FILTER_TESTS: ${{ inputs.filter_tests }}
+        run: |
+          # Small, secret-free JSON manifest describing this run and the
+          # outcome of each id'd step. Consumed by the triage workflow.
+          python3 - <<'PY'
+          import json
+          import os
+
+          manifest = {
+              "source_run_id": os.environ["GITHUB_RUN_ID"],
+              "source_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "source_run_url": (
+                  f"{os.environ['GITHUB_SERVER_URL']}/"
+                  f"{os.environ['GITHUB_REPOSITORY']}/actions/runs/"
+                  f"{os.environ['GITHUB_RUN_ID']}"
+              ),
+              "sha": os.environ["GITHUB_SHA"],
+              "ref": os.environ["GITHUB_REF"],
+              "workflow": os.environ["GITHUB_WORKFLOW"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "job": os.environ["GITHUB_JOB"],
+              "platform": os.environ["CLOUD_INIT_PLATFORM"],
+              "release": os.environ["CLOUD_INIT_OS_IMAGE"],
+              "image_type": os.environ["CLOUD_INIT_OS_IMAGE_TYPE"],
+              "install_source": os.environ["CLOUD_INIT_CLOUD_INIT_SOURCE"],
+              "filter_tests": os.environ.get("FILTER_TESTS", ""),
+              "step_outcomes": {
+                  "run_integration_tests": os.environ.get(
+                      "STEP_RUN_INTEGRATION_TESTS", "unknown"
+                  ),
+                  "publish_ctrf": os.environ.get(
+                      "STEP_PUBLISH_CTRF", "unknown"
+                  ),
+                  "upload_failure_artifacts": os.environ.get(
+                      "STEP_UPLOAD_FAILURE_ARTIFACTS", "unknown"
+                  ),
+              },
+          }
+          with open(os.environ["EVIDENCE_MANIFEST"], "w") as f:
+              json.dump(manifest, f, indent=2, sort_keys=True)
+          PY
+      - name: Upload evidence
+        id: upload_evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: integration-evidence
+          path: |
+            ${{ github.workspace }}/pytest.log
+            ${{ github.workspace }}/evidence-manifest.json
+            ${{ github.workspace }}/junit-report.xml
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Clean pycloudlib
         if: ${{ always() }}
         run: |

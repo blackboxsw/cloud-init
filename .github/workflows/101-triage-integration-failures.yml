@@ -1,0 +1,258 @@
+# Triage failed daily integration runs through OpenRouter.
+#
+# Triggered automatically via `workflow_run` when any of the daily integration
+# workflows (110-134, all callers of 100-dispatch-common.yml) completes with
+# `failure`, and manually via `workflow_dispatch` with a historical `run_id`.
+#
+# The workflow downloads the source run's artifacts, invokes
+# `.github/scripts/github_workflow_triage.py` to build an evidence package,
+# calls OpenRouter, and publishes a Markdown triage report to the job summary
+# and as a retained artifact. No PR comments, no issue creation.
+#
+# SECURITY: This workflow must never run outside `canonical/cloud-init` and
+# must never be triggered by PR-driven paths, because it handles
+# `OPENROUTER_API_KEY`.
+name: "Triage: Integration Failures"
+
+on:
+  workflow_run:
+    workflows:
+      - "Daily 22.04: lxd_container"
+      - "Daily 24.04: lxd_container"
+      - "Daily 26.04: lxd_container"
+      - "Daily 26.10: lxd_container"
+      - "Daily 22.04: lxd_vm"
+      - "Daily 24.04: lxd_vm"
+      - "Daily 26.04: lxd_vm"
+      - "Daily 26.10: lxd_vm"
+      - "Twice weekly 22.04: ec2"
+      - "Twice weekly 24.04: ec2"
+      - "Twice weekly 26.04: ec2"
+      - "Twice weekly 26.10: ec2"
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Source integration run id to triage"
+        required: true
+        type: string
+      repo:
+        description: "Full repository slug of the source run"
+        required: false
+        type: string
+        default: "canonical/cloud-init"
+      model:
+        description: "OpenRouter model slug"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "Skip the OpenRouter call; build the evidence package only"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: triage-${{ github.event.workflow_run.id || inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    if: github.repository == 'canonical/cloud-init'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Resolve source run
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+          INPUT_REPO: ${{ inputs.repo }}
+        run: |
+          set -eu
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from urllib.request import Request, urlopen
+
+          event = os.environ.get("GITHUB_EVENT_NAME", "")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          api = f"https://api.github.com/repos/{repo}"
+
+          if event == "workflow_dispatch":
+              run_id = os.environ["INPUT_RUN_ID"]
+              src_repo = os.environ.get("INPUT_REPO", repo) or repo
+              if src_repo != repo:
+                  print(
+                      f"::error::source run repo '{src_repo}' does not match "
+                      f"this repository '{repo}'; refusing to triage across "
+                      f"repositories"
+                  )
+                  sys.exit(1)
+          else:
+              payload = json.load(
+                  open(os.environ["GITHUB_EVENT_PATH"])
+              )
+              wf_run = payload["workflow_run"]
+              run_id = str(wf_run["id"])
+              if payload["repository"]["full_name"] != repo:
+                  print(
+                      f"::error::workflow_run originated from "
+                      f"{payload['repository']['full_name']}, not {repo}"
+                  )
+                  sys.exit(1)
+              if wf_run.get("conclusion") != "failure":
+                  print(
+                      f"::notice::source run {run_id} conclusion is "
+                      f"{wf_run.get('conclusion')}; nothing to triage"
+                  )
+                  sys.exit(0)
+
+          # Fetch the run to validate the workflow filename and capture
+          # metadata for the report.
+          req = Request(
+              f"{api}/actions/runs/{run_id}",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+              },
+          )
+          with urlopen(req) as resp:
+              run = json.load(resp)
+
+          allowed = {
+              "Daily 22.04: lxd_container",
+              "Daily 24.04: lxd_container",
+              "Daily 26.04: lxd_container",
+              "Daily 26.10: lxd_container",
+              "Daily 22.04: lxd_vm",
+              "Daily 24.04: lxd_vm",
+              "Daily 26.04: lxd_vm",
+              "Daily 26.10: lxd_vm",
+              "Twice weekly 22.04: ec2",
+              "Twice weekly 24.04: ec2",
+              "Twice weekly 26.04: ec2",
+              "Twice weekly 26.10: ec2",
+          }
+          wf_path = run.get("name") or run.get("path") or ""
+          wf_file = wf_path.rsplit("/", 1)[-1]
+          if wf_file not in allowed:
+              print(
+                  f"::error::source run {run_id} used workflow "
+                  f"'{wf_file}', which is not a daily integration workflow; "
+                  f"refusing to triage"
+              )
+              sys.exit(1)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"run_id={run_id}\n")
+              out.write(f"workflow_file={wf_file}\n")
+              out.write(
+                  f"workflow_name={run.get('name', '')}\n"
+              )
+              out.write(f"head_sha={run.get('head_sha', '')}\n")
+              out.write(f"html_url={run.get('html_url', '')}\n")
+          print(f"Resolved source run {run_id} ({wf_file})")
+          PY
+      - name: Stop if nothing to triage
+        if: steps.resolve.outcome == 'success' && steps.resolve.outputs.run_id == ''
+        run: |
+          echo "No source run resolved; exiting."
+          exit 0
+      - name: Validate configuration
+        id: config
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          OPENROUTER_API_URL: ${{ vars.OPENROUTER_API_URL }}
+          INPUT_MODEL: ${{ inputs.model }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -eu
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "::error::secrets.OPENROUTER_API_KEY is required"
+            exit 1
+          fi
+          MODEL="$INPUT_MODEL"
+          if [ -z "$MODEL" ]; then MODEL="$OPENROUTER_MODEL"; fi
+          if [ -z "$MODEL" ]; then
+            echo "::error::vars.OPENROUTER_MODEL (or inputs.model) is required"
+            exit 1
+          fi
+          API_URL="$OPENROUTER_API_URL"
+          if [ -z "$API_URL" ]; then
+            API_URL="https://openrouter.ai/api/v1/chat/completions"
+          fi
+          DRY_RUN="$INPUT_DRY_RUN"
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+          echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+      - name: Download source artifacts
+        id: download
+        if: steps.resolve.outputs.run_id != ''
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6.0.0
+        with:
+          run-id: ${{ steps.resolve.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ github.workspace }}/artifacts
+        continue-on-error: true
+      - name: List downloaded artifacts
+        if: steps.resolve.outputs.run_id != ''
+        run: |
+          set -eu
+          echo "## Downloaded artifact tree" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          find "${{ github.workspace }}/artifacts" -mindepth 1 -printf '%y %p\n' \
+            2>/dev/null | sort >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Run triage helper
+        id: triage
+        if: steps.resolve.outputs.run_id != ''
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ steps.config.outputs.model }}
+          OPENROUTER_API_URL: ${{ steps.config.outputs.api_url }}
+          SOURCE_RUN_ID: ${{ steps.resolve.outputs.run_id }}
+          SOURCE_WORKFLOW_FILE: ${{ steps.resolve.outputs.workflow_file }}
+          SOURCE_WORKFLOW_NAME: ${{ steps.resolve.outputs.workflow_name }}
+          SOURCE_HEAD_SHA: ${{ steps.resolve.outputs.head_sha }}
+          SOURCE_HTML_URL: ${{ steps.resolve.outputs.html_url }}
+          DRY_RUN: ${{ steps.config.outputs.dry_run }}
+        run: |
+          set -eu
+          python3 .github/scripts/github_workflow_triage.py \
+            --evidence-root "${{ github.workspace }}/artifacts" \
+            --report "${{ github.workspace }}/triage-report.md" \
+            --repair-plan "${{ github.workspace }}/repair-plan.md" \
+            --raw-response "${{ github.workspace }}/openrouter-response.json" \
+            --model "$OPENROUTER_MODEL" \
+            --api-url "$OPENROUTER_API_URL" \
+            --source-run-id "$SOURCE_RUN_ID" \
+            --source-workflow "$SOURCE_WORKFLOW_FILE" \
+            --source-sha "$SOURCE_HEAD_SHA" \
+            --source-url "$SOURCE_HTML_URL" \
+            ${DRY_RUN:+--dry-run}
+      - name: Publish report to job summary
+        if: steps.resolve.outputs.run_id != '' && always()
+        run: |
+          if [ -f "${{ github.workspace }}/triage-report.md" ]; then
+            cat "${{ github.workspace }}/triage-report.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload triage report
+        if: steps.resolve.outputs.run_id != '' && always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        with:
+          name: triage-report
+          path: |
+            ${{ github.workspace }}/triage-report.md
+            ${{ github.workspace }}/repair-plan.md
+            ${{ github.workspace }}/openrouter-response.json
+          if-no-files-found: ignore
+          retention-days: 14
