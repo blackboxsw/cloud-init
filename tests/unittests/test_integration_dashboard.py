@@ -731,7 +731,7 @@ class TestNoExternalAssets:
                 if "https://" in content:
                     assert all(
                         url.startswith(
-                            "https://github.com/canonical/cloud-init/"
+                            "https://github.com/blackboxsw/cloud-init/"
                         )
                         for url in _extract_urls(content)
                         if url
