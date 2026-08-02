@@ -488,6 +488,92 @@ Customizing the launch arguments before launching an instance manually:
             client.instance.wait()
             assert client.execute("echo hello world").strip() == "hello world"
 
+Integration test results dashboard
+===================================
+
+A persistent, interactive dashboard aggregates scheduled integration-test
+workflow results and shows success/failure rate per pytest path, both
+across repeated runs within one Ubuntu release (flakiness) and across
+platforms (oci, ec2, lxd_vm, lxd_container).
+
+The dashboard is hosted on GitHub Pages at
+``https://canonical.github.io/cloud-init/ci-dashboard/`` and is updated
+daily by the ``160-daily-integration-dashboard`` workflow.
+
+Axes
+-----
+
+The dashboard displays two axes of information:
+
+* **Flakiness within one release**: each cell in the matrix shows a
+  sparkline of recent run outcomes for a single test on a single
+  (platform, release) combination. A pass-to-fail transition is a
+  "flip"; the flakiness metric is ``flips / (runs - 1)``.
+
+* **Cross-platform comparison**: reading a row left-to-right compares
+  platforms for one test, making platform-specific skips and failures
+  immediately visible.
+
+Outcome alphabet
+-----------------
+
+Each test run is classified with a single character:
+
+* ``P`` — pass
+* ``F`` — failure (assertion or test error)
+* ``E`` — error (setup/teardown/collection failure)
+* ``S`` — skipped
+* ``X`` — expected failure (``pytest.xfail``)
+* ``-`` — not collected in this run
+
+Infrastructure failures
+-----------------------
+
+A run is classified as an infrastructure failure (``infra``) when the
+JUnit artifact is missing, when zero testcases were collected, or when
+the test count is below 25% of the median for that (platform, release).
+Such runs are excluded from success-rate and flakiness denominators and
+rendered with a distinct marker. This prevents a failed image build
+from looking like hundreds of simultaneous test failures.
+
+Data schema
+------------
+
+Data is stored as compact JSON on the ``gh-pages`` branch under
+``ci-dashboard/data/``:
+
+* ``tests.json`` — append-only array of interned pytest node ids. The
+  array index is the permanent key for each test.
+* ``runs/YYYY-MM.json`` — monthly shards with per-run outcome strings.
+  Each outcome string is one character per test index, aligned to
+  ``tests.json``.
+* ``summary.json`` — precomputed per-cell statistics for fast first
+  paint.
+* ``index.json`` — manifest listing platforms, releases, image types,
+  months, and workflows. Dimension lists are derived from observed
+  data, so new platforms (e.g. azure) appear automatically.
+
+Running locally
+----------------
+
+To preview the dashboard against a local ``--junitxml`` run:
+
+.. code-block:: bash
+
+    # Ingest a local JUnit report
+    python3 tools/integration_dashboard.py ingest \
+      --data-dir /tmp/dashboard-data \
+      --junit junit-report.xml \
+      --meta junit-meta.json \
+      --platform lxd_container --release jammy --version 22.04 \
+      --workflow test.yml --run-id 1
+
+    # Serve the dashboard
+    cp -r tools/dashboard /tmp/dashboard-assets
+    cp -r /tmp/dashboard-data /tmp/dashboard-assets/ci-dashboard/data
+    python3 tools/integration_dashboard.py serve \
+      --serve-dir /tmp/dashboard-assets
+
 .. LINKS:
 .. _tests/integration_tests/integration_settings.py: https://github.com/canonical/cloud-init/blob/main/tests/integration_tests/integration_settings.py
 .. _pycloudlib library: https://pycloudlib.readthedocs.io/en/latest/index.html

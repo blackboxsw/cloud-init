@@ -93,6 +93,8 @@ jobs:
             mkdir -p "${GH_PAGES_DIR}"
             cd "${GH_PAGES_DIR}"
             git init
+            git remote add origin \
+              "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git checkout --orphan gh-pages
             touch .nojekyll
             git add .nojekyll
