@@ -74,6 +74,7 @@ exoscale
 faillog
 fips
 firstboot
+flakiness
 flexibile
 fqdn
 freebsd
@@ -131,6 +132,7 @@ netplan
 networkd
 nistp
 nocloud
+nodeid
 ntp
 ntpd
 ntpdate
@@ -200,6 +202,7 @@ smtp
 snapd
 softlayer
 somedir
+sparkline
 sr
 sshd
 ssk
