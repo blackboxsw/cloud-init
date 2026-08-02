@@ -30,7 +30,7 @@ DASH.OUTCOMES = {
 };
 
 DASH.GITHUB_RUN_URL = (
-  "https://github.com/canonical/cloud-init/actions/runs/"
+  "https://github.com/blackboxsw/cloud-init/actions/runs/"
 );
 
 DASH.SVG_NS = "http" + "://www.w3.org/2000/svg";

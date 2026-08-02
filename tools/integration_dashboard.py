@@ -65,7 +65,7 @@ FALLBACK_CODENAMES: Dict[str, str] = {
     "26.10": "stonking",
 }
 
-DEFAULT_OWNER = "canonical"
+DEFAULT_OWNER = "blackboxsw"
 DEFAULT_REPO = "cloud-init"
 DETAIL_RETENTION_DAYS = 120
 RATE_LIMIT_FLOOR = 50
@@ -73,7 +73,7 @@ MAX_ARTIFACT_ZIP_BYTES = 32 * 1024 * 1024
 MAX_XML_BYTES = 64 * 1024 * 1024
 MAX_ZIP_MEMBERS = 1000
 API_VERSION = "2022-11-28"
-USER_AGENT = "cloud-init-integration-dashboard/1.0"
+USER_AGENT = "blackboxsw-integration-dashboard/1.0"
 
 
 # === Data classes ========================================================

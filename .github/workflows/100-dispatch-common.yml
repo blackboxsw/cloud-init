@@ -67,7 +67,7 @@ on:
 jobs:
   integration-test:
     runs-on: ubuntu-latest
-    if: github.repository == 'canonical/cloud-init'
+    if: github.repository == 'blackboxsw/cloud-init'
 
     env:
       REQUIRED_SECRET: ${{ secrets.PYCLOUDLIB_TOML_B64 }}
