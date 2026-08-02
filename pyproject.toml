@@ -167,6 +167,7 @@ module = [
 
     # tools/*
     "netplan_schema_check",
+    "integration_dashboard",
 ]
 check_untyped_defs = false
 

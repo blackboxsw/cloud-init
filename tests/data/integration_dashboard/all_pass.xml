@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" tests="3">
+    <testcase classname="tests.integration_tests.test_paths.TestHonorCloudDir" name="test_honor_cloud_dir" time="1.23"/>
+    <testcase classname="tests.integration_tests.test_defaults" name="test_defaults" time="0.45"/>
+    <testcase classname="tests.integration_tests.modules.test_apt.TestApt" name="test_sources_list" time="2.10"/>
+  </testsuite>
+</testsuites>

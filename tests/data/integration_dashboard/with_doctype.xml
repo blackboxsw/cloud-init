@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE testsuites [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<testsuites>
+  <testsuite name="pytest" tests="1">
+    <testcase classname="tests.integration_tests.test_x" name="test_x" time="0.1">&xxe;</testcase>
+  </testsuite>
+</testsuites>

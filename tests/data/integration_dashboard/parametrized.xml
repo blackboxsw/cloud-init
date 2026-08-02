@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" tests="2">
+    <testcase classname="tests.integration_tests.modules.test_ssh_keys_provided.TestSshKeysProvided" name="test_keys[rsa-key1]" time="1.0"/>
+    <testcase classname="tests.integration_tests.modules.test_ssh_keys_provided.TestSshKeysProvided" name="test_keys[rsa-key2]" time="1.0">
+      <skipped type="pytest.xfail" message="known issue">xfail</skipped>
+    </testcase>
+  </testsuite>
+</testsuites>

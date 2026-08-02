@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" tests="4">
+    <testcase classname="tests.integration_tests.test_paths.TestHonorCloudDir" name="test_honor_cloud_dir" time="1.23"/>
+    <testcase classname="tests.integration_tests.test_defaults" name="test_defaults" time="0.45">
+      <failure message="assert False">AssertionError: assert False</failure>
+    </testcase>
+    <testcase classname="tests.integration_tests.modules.test_apt.TestApt" name="test_sources_list" time="2.10">
+      <error message="setup failed">fixture error</error>
+    </testcase>
+    <testcase classname="tests.integration_tests.modules.test_apt.TestApt" name="test_ppa_source" time="0.10">
+      <skipped type="pytest.skip" message="not supported">skip</skipped>
+    </testcase>
+  </testsuite>
+</testsuites>

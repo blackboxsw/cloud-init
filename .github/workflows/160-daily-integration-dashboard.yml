@@ -1,0 +1,181 @@
+name: "Daily: Integration Dashboard"
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: 'Backfill window in days (max 90)'
+        required: false
+        type: string
+        default: ''
+      since_days:
+        description: 'Lookback window in days'
+        required: false
+        type: string
+        default: '2'
+      dry_run:
+        description: 'Dry run (no commit)'
+        required: false
+        type: boolean
+        default: false
+      rollup:
+        description: 'Run rollup before collect'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: integration-dashboard
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: sh -ex {0}
+
+jobs:
+  selftest:
+    name: Dashboard self-test
+    runs-on: ubuntu-latest
+    if: github.repository == 'canonical/cloud-init'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install tox
+        run: pip install tox
+      - name: Run dashboard unit tests
+        run: tox -e py3 -- tests/unittests/test_integration_dashboard.py --color=yes
+      - name: Verify no external assets
+        run: |
+          python3 -c "
+          from pathlib import Path
+          d = Path('tools/dashboard')
+          for f in list(d.glob('*.html')) + list(d.glob('*.js')) + list(d.glob('*.css')):
+              content = f.read_text()
+              assert 'http://' not in content, f'{f.name} contains http://'
+          html = (d / 'index.html').read_text()
+          assert \"default-src 'none'\" in html
+          assert \"script-src 'self'\" in html
+          print('No-external-asset check passed')
+          "
+
+  aggregate:
+    name: Aggregate and publish
+    runs-on: ubuntu-latest
+    if: github.repository == 'canonical/cloud-init'
+    needs: selftest
+    env:
+      GH_PAGES_DIR: gh-pages-checkout
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+          path: main-checkout
+      - name: Checkout or create gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "${RUNNER_TEMP}"
+          if git clone --branch gh-pages --depth 1 \
+              "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+              "${GH_PAGES_DIR}"; then
+            echo "gh-pages branch cloned"
+          else
+            echo "gh-pages branch not found, creating orphan"
+            mkdir -p "${GH_PAGES_DIR}"
+            cd "${GH_PAGES_DIR}"
+            git init
+            git checkout --orphan gh-pages
+            touch .nojekyll
+            git add .nojekyll
+            git -c user.name="cloud-init-bot" \
+              -c user.email="cloud-init-bot@users.noreply.github.com" \
+              commit -m "Bootstrap gh-pages for integration dashboard"
+            git push origin gh-pages
+          fi
+      - name: Copy dashboard assets
+        run: |
+          mkdir -p "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard"
+          cp main-checkout/tools/dashboard/index.html \
+             "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard/"
+          cp main-checkout/tools/dashboard/app.js \
+             "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard/"
+          cp main-checkout/tools/dashboard/style.css \
+             "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard/"
+          cp main-checkout/tools/dashboard/.nojekyll \
+             "${RUNNER_TEMP}/${GH_PAGES_DIR}/"
+      - name: Run rollup
+        if: ${{ github.event.inputs.rollup == 'true' }}
+        run: |
+          python3 main-checkout/tools/integration_dashboard.py rollup \
+            --data-dir "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard/data" \
+            --retention-days 120
+      - name: Aggregate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_SINCE: ${{ github.event.inputs.since_days || '2' }}
+          INPUT_BACKFILL: ${{ github.event.inputs.backfill_days }}
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          SINCE="$INPUT_SINCE"
+          if [ -n "$INPUT_BACKFILL" ]; then
+            SINCE="$INPUT_BACKFILL"
+          fi
+          DRY_RUN=""
+          if [ "$INPUT_DRY_RUN" = "true" ]; then
+            DRY_RUN="--dry-run"
+          fi
+          python3 main-checkout/tools/integration_dashboard.py collect \
+            --data-dir "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard/data" \
+            --since-days "$SINCE" \
+            $DRY_RUN
+      - name: Write step summary
+        env:
+          DATA_DIR: "${RUNNER_TEMP}/${GH_PAGES_DIR}/ci-dashboard/data"
+        run: |
+          echo "## Integration Dashboard Summary" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "$DATA_DIR/index.json" ]; then
+            python3 -c "
+          import json
+          with open('$DATA_DIR/index.json') as f:
+              idx = json.load(f)
+          print(f'- Platforms: {idx.get(\"platforms\", [])}')
+          print(f'- Releases: {idx.get(\"releases\", [])}')
+          print(f'- Workflows: {len(idx.get(\"workflows\", []))}')
+          print(f'- Total runs: {idx.get(\"counts\", {}).get(\"total_runs\", 0)}')
+          print(f'- Total tests: {idx.get(\"counts\", {}).get(\"total_tests\", 0)}')
+          " >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No data collected yet" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Dashboard: https://canonical.github.io/cloud-init/ci-dashboard/" \
+            >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit and push
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ${{ runner.temp }}/${{ env.GH_PAGES_DIR }}
+        run: |
+          git config user.name "cloud-init-bot"
+          git config user.email "cloud-init-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update integration dashboard data"
+            for i in 1 2 3; do
+              git pull --rebase origin gh-pages && \
+                git push origin gh-pages && break
+              echo "Push attempt $i failed, retrying..."
+              sleep 5
+            done
+          fi

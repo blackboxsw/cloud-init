@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" tests="2">
+    <testcase classname="tests.integration_tests.test_paths.TestHonorCloudDir" name="test_honor_cloud_dir" time="1.23">
+      <properties>
+        <property name="nodeid" value="tests/integration_tests/test_paths.py::TestHonorCloudDir::test_honor_cloud_dir"/>
+      </properties>
+    </testcase>
+    <testcase classname="tests.integration_tests.test_defaults" name="test_defaults" time="0.45">
+      <properties>
+        <property name="nodeid" value="tests/integration_tests/test_defaults.py::test_defaults"/>
+      </properties>
+    </testcase>
+  </testsuite>
+</testsuites>
