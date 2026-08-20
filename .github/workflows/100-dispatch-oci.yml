@@ -1,0 +1,141 @@
+# WARNING: This workflow handles repository secrets (PYCLOUDLIB_TOML_B64, SSH keys,
+# PYCLOUDLIB_OCI_CONFIG_B64, PYCLOUDLIB_OCI_KEY_B64).
+# It MUST NOT be triggered by PR-driven workflows to prevent secret exposure to
+# untrusted code submitted via pull requests.
+name: "Dispatch: Integration (OCI)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        required: true
+        type: choice
+        options:
+        - stonking
+        - resolute
+        - jammy
+        - noble
+      image_type:
+        required: true
+        type: choice
+        options:
+        - generic
+        - minimal
+      install_source:
+        required: false
+        type: string
+        default: 'ppa:cloud-init-dev/daily'
+      filter_tests:
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      release:
+        required: true
+        type: string
+      image_type:
+        required: true
+        type: string
+      install_source:
+        required: true
+        type: string
+      filter_tests:
+        required: false
+        type: string
+    secrets:
+      PYCLOUDLIB_TOML_B64:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_PUBLIC_KEY:
+        required: true
+      PYCLOUDLIB_OCI_CONFIG_B64:
+        required: true
+      PYCLOUDLIB_OCI_KEY_B64:
+        required: true
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    if: github.repository == 'canonical/cloud-init'
+
+    env:
+      REQUIRED_SECRET: ${{ secrets.PYCLOUDLIB_TOML_B64 }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+      PYCLOUDLIB_OCI_CONFIG_B64: ${{ secrets.PYCLOUDLIB_OCI_CONFIG_B64 }}
+      PYCLOUDLIB_OCI_KEY_B64: ${{ secrets.PYCLOUDLIB_OCI_KEY_B64 }}
+      CLOUD_INIT_PLATFORM: oci
+      CLOUD_INIT_OS_IMAGE: ${{ inputs.release }}
+      CLOUD_INIT_OS_IMAGE_TYPE: ${{ inputs.image_type }}
+      CLOUD_INIT_CLOUD_INIT_SOURCE: ${{ inputs.install_source }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Assert required repo secrets are set
+        run: |
+          if [ -z "$REQUIRED_SECRET" ]; then
+             echo "ERROR: Missing required repo secret. Please provide the necessary repo secret at ${{ github.repository }}/settings/secrets/actions."
+             exit 1
+          fi
+          if [ -z "$SSH_PUBLIC_KEY" ]; then
+             echo "ERROR: Missing required repo secret. Please provide SSH_PUBLIC_KEY repo secret at ${{ github.repository }}/settings/secrets/actions."
+             exit 1
+          fi
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+             echo "ERROR: Missing required repo secret. Please provide SSH_PRIVATE_KEY repo secret at ${{ github.repository }}/settings/secrets/actions."
+             exit 1
+          fi
+          if [ -z "$PYCLOUDLIB_OCI_CONFIG_B64" ]; then
+             echo "ERROR: Missing required repo secret. Please provide PYCLOUDLIB_OCI_CONFIG_B64 repo secret at ${{ github.repository }}/settings/secrets/actions."
+             exit 1
+          fi
+          if [ -z "$PYCLOUDLIB_OCI_KEY_B64" ]; then
+             echo "ERROR: Missing required repo secret. Please provide PYCLOUDLIB_OCI_KEY_B64 repo secret at ${{ github.repository }}/settings/secrets/actions."
+             exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Clean workspace
+        run: |
+          rm -rf ${{ github.workspace }}/cloud_init_test_logs/
+      - name: Setup SSH
+        uses: ./.github/actions/setup-ssh
+      - name: Setup pycloudlib
+        uses: ./.github/actions/setup-pycloudlib
+        with:
+          pycloudlib_config: ${{ runner.temp }}/pycloudlib.toml
+      - name: Setup OCI credentials
+        env:
+          PYCLOUDLIB_OCI_CONFIG_FILE_PATH: ${{ runner.temp }}/oci/config
+          PYCLOUDLIB_OCI_KEY_FILE_PATH: ${{ runner.temp }}/oci/key.pem
+        run: |
+          mkdir -p "$(dirname "$PYCLOUDLIB_OCI_CONFIG_FILE_PATH")"
+          sh -c 'printf "%s\n" "$PYCLOUDLIB_OCI_CONFIG_B64" | base64 -d > "$PYCLOUDLIB_OCI_CONFIG_FILE_PATH"'
+          sh -c 'printf "%s\n" "$PYCLOUDLIB_OCI_KEY_B64" | base64 -d  | install -m 600 /dev/stdin "$PYCLOUDLIB_OCI_KEY_FILE_PATH"'
+      - name: Install Dependencies
+        uses: ./.github/actions/install-deps
+      - name: Run integration Tests
+        uses: ./.github/actions/run-integration-tests
+        with:
+          filter_tests: ${{ inputs.filter_tests }}
+          local_log_path: ${{ github.workspace }}/cloud_init_test_logs
+          pycloudlib_config: ${{ runner.temp }}/pycloudlib.toml
+          oci_config_path: ${{ runner.temp }}/oci/config
+          oci_key_path: ${{ runner.temp }}/oci/key.pem
+      - name: Publish Test Report
+        if: ${{ always() }}
+        uses: ./.github/actions/publish-test-report
+        with:
+          platform: oci
+          release: ${{ inputs.release }}
+          image_type: ${{ inputs.image_type }}
+          install_source: ${{ inputs.install_source }}
+      - name: Upload failure artifacts
+        if: ${{ failure() }}
+        uses: ./.github/actions/upload-failure-artifacts
+        with:
+          path: ${{ github.workspace }}/cloud_init_test_logs/
+      - name: Clean pycloudlib
+        if: ${{ always() }}
+        uses: ./.github/actions/clean-pycloudlib
