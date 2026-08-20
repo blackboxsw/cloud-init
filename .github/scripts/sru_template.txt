@@ -1,0 +1,40 @@
+== Begin SRU Template ==
+[Impact]
+This release sports both bug-fixes and new features and we would like to
+make sure all of our supported customers have access to these
+improvements. The notable ones are:
+
+{highlights}
+Release notes: {release_url}
+
+See the changelog entry below for a full list of changes and bugs.
+
+[Test Case]
+The following development and SRU process was followed:
+{sru_doc_url}
+
+The cloud-init team will be in charge of attaching the artifacts and
+console output of the appropriate run to the bug.  cloud-init team
+members will not mark 'verification-done' until this has happened.
+
+* Automated Test Results
+<TODO-SRU-VERIFICATION: attach automated cloud-init-proposed test artifacts from tests for each release with lxd artifacts>
+<TODO-SRU-VERIFICATION: attach automated cloud-init-proposed test artifacts from tests for each release with kvm artifacts>
+<TODO-SRU-VERIFICATION: attach automated curtin vmtest with cloud-init proposed>
+<TODO-SRU-VERIFICATION: attach Solutions Testing team test results for each LTS>
+
+* Manual Test Results
+<TODO-SRU-VERIFICATION: attach manual cloud-init-proposed test artifacts from tests for each release on ec2 datasource>
+<TODO-SRU-VERIFICATION: attach manual cloud-init-proposed test artifacts from tests for each release on gce datasource>
+<TODO-SRU-VERIFICATION: attach manual cloud-init-proposed test artifacts from tests for each release on azure datasource>
+
+[Regression Potential]
+In order to mitigate the regression potential, the results of the
+aforementioned integration tests are attached to this bug.
+
+[Discussion]
+<TODO-PRIOR-TO-PROPOSED: other background if applicable>
+
+== End SRU Template ==
+
+<TODO-PRIOR-TO-PROPOSED: Paste in change log entry>

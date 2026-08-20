@@ -1,0 +1,36 @@
+name: Create cloud-init SRU bug
+
+on:
+  workflow_dispatch:
+    inputs:
+      create:
+        description: >
+          File the bug on Launchpad. Leave unchecked for a safe dry run
+          that prints the title and description only.
+        type: boolean
+        default: false
+      version:
+        description: >
+          Override the version detected from the latest GitHub release.
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: create-sru-bug
+  cancel-in-progress: false
+
+jobs:
+  create-sru-bug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create cloud-init SRU bug
+        uses: ./.github/actions/create-sru-bug
+        with:
+          create: ${{ inputs.create }}
+          version: ${{ inputs.version }}

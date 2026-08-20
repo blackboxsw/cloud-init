@@ -1,0 +1,71 @@
+name: Create cloud-init SRU bug
+description: >
+  Create a Launchpad cloud-init SRU process bug for the latest (or a
+  specified) cloud-init release. The bug is filed against the
+  ubuntu/cloud-init source package using the official cloud-init SRU
+  template, with release highlights inlined from the GitHub release
+  notes. Defaults to a safe dry run that prints the title and
+  description; set `create: true` to actually file the bug. Requires the
+  `LP_CREDENTIALS` repository secret (a serialized launchpadlib
+  credentials string) when creating.
+
+inputs:
+  create:
+    description: >
+      Truthy value to actually file the bug on Launchpad. When false
+      (default) the action prints the title and description only.
+    required: false
+    default: 'false'
+  version:
+    description: >
+      Override the version detected from the latest GitHub release. The
+      bug title becomes "sru cloud-init version <version>".
+    required: false
+    default: ''
+  github-token:
+    description: >
+      Optional GitHub token to raise API rate limits when fetching the
+      latest release. Defaults to the auto-provided GITHUB_TOKEN.
+    required: false
+    default: ''
+
+outputs:
+  version:
+    description: The cloud-init version used in the bug title.
+    value: ${{ steps.file.outputs.version }}
+  title:
+    description: The generated bug title.
+    value: ${{ steps.file.outputs.title }}
+  release-url:
+    description: The GitHub release URL the highlights were sourced from.
+    value: ${{ steps.file.outputs.release-url }}
+  bug-url:
+    description: The Launchpad bug URL (empty in dry-run mode).
+    value: ${{ steps.file.outputs.bug-url }}
+  bug-id:
+    description: The Launchpad bug id (empty in dry-run mode).
+    value: ${{ steps.file.outputs.bug-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install launchpadlib
+      shell: bash
+      run: |
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install \
+          python3-launchpadlib
+
+    - name: Create cloud-init SRU bug
+      id: file
+      shell: bash
+      env:
+        CREATE: ${{ inputs.create }}
+        VERSION: ${{ inputs.version }}
+        GITHUB_TOKEN: ${{ inputs.github-token || github.token }}
+        LP_CREDENTIALS: ${{ secrets.LP_CREDENTIALS }}
+      run: |
+        python3 "$GITHUB_WORKSPACE/.github/scripts/create_sru_bug.py" \
+          --create "${CREATE}" \
+          --version "${VERSION}" \
+          --github-token "${GITHUB_TOKEN}"
