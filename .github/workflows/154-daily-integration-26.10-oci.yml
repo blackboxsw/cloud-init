@@ -22,10 +22,9 @@ on:
 
 jobs:
   stonking-oci:
-    uses: ./.github/workflows/100-dispatch-common.yml
+    uses: ./.github/workflows/100-dispatch-oci.yml
     with:
       release: stonking
-      platform: oci
       install_source: ${{ inputs.install_source || 'ppa:cloud-init-dev/daily' }}
       image_type: ${{ inputs.image_type || 'generic' }}
       filter_tests: ${{ inputs.filter_tests }}
