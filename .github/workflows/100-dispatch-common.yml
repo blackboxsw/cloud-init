@@ -21,7 +21,6 @@ on:
         - lxd_container
         - lxd_vm
         - ec2
-        - oci
       image_type:
         required: true
         type: choice
@@ -59,10 +58,6 @@ on:
         required: true
       SSH_PUBLIC_KEY:
         required: true
-      PYCLOUDLIB_OCI_CONFIG_B64:
-        required: false
-      PYCLOUDLIB_OCI_KEY_B64:
-        required: false
 
 jobs:
   integration-test:
@@ -73,12 +68,11 @@ jobs:
       REQUIRED_SECRET: ${{ secrets.PYCLOUDLIB_TOML_B64 }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
-      PYCLOUDLIB_OCI_CONFIG_B64: ${{ secrets.PYCLOUDLIB_OCI_CONFIG_B64 }}
-      PYCLOUDLIB_OCI_KEY_B64: ${{ secrets.PYCLOUDLIB_OCI_KEY_B64 }}
       CLOUD_INIT_PLATFORM: ${{ inputs.platform }}
       CLOUD_INIT_OS_IMAGE: ${{ inputs.release }}
       CLOUD_INIT_OS_IMAGE_TYPE: ${{ inputs.image_type }}
       CLOUD_INIT_CLOUD_INIT_SOURCE: ${{ inputs.install_source }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Assert required repo secrets are set
@@ -95,16 +89,6 @@ jobs:
              echo "ERROR: Missing required repo secret. Please provide SSH_PRIVATE_KEY repo secret at ${{ github.repository }}/settings/secrets/actions."
              exit 1
           fi
-          if [ "$CLOUD_INIT_PLATFORM" = "oci" ]; then
-            if [ -z "$PYCLOUDLIB_OCI_CONFIG_B64" ]; then
-              echo "ERROR: Missing required repo secret. Please provide PYCLOUDLIB_OCI_CONFIG_B64 repo secret at ${{ github.repository }}/settings/secrets/actions."
-              exit 1
-            fi
-            if [ -z "$PYCLOUDLIB_OCI_KEY_B64" ]; then
-              echo "ERROR: Missing required repo secret. Please provide PYCLOUDLIB_OCI_KEY_B64 repo secret at ${{ github.repository }}/settings/secrets/actions."
-              exit 1
-            fi
-          fi
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - name: Setup LXD
@@ -119,76 +103,32 @@ jobs:
         run: |
           rm -rf ${{ github.workspace }}/cloud_init_test_logs/
       - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          sh -c 'printf "%s\n" "$SSH_PUBLIC_KEY" > ~/.ssh/cloudinit_id_rsa.pub'
-          # Dump secret using a subprocess to avoid accidental leaks when using set -x.
-          sh -c 'printf "%s\n" "$SSH_PRIVATE_KEY" | install -m 600 /dev/stdin ~/.ssh/cloudinit_id_rsa'
+        uses: ./.github/actions/setup-ssh
       - name: Setup pycloudlib
-        env:
-          PYCLOUDLIB_CONFIG: ${{ runner.temp }}/pycloudlib.toml
-        run: |
-          sh -c 'echo "$REQUIRED_SECRET" | base64 -d > "$PYCLOUDLIB_CONFIG"'
-      - name: Setup OCI credentials
-        if: ${{ env.CLOUD_INIT_PLATFORM == 'oci' }}
-        env:
-          PYCLOUDLIB_OCI_CONFIG_FILE_PATH: ${{ runner.temp }}/oci/config
-          PYCLOUDLIB_OCI_KEY_FILE_PATH: ${{ runner.temp }}/oci/key.pem
-        run: |
-          mkdir -p "$(dirname "$PYCLOUDLIB_OCI_CONFIG_FILE_PATH")"
-          sh -c 'printf "%s\n" "$PYCLOUDLIB_OCI_CONFIG_B64" | base64 -d > "$PYCLOUDLIB_OCI_CONFIG_FILE_PATH"'
-          sh -c 'printf "%s\n" "$PYCLOUDLIB_OCI_KEY_B64" | base64 -d  | install -m 600 /dev/stdin "$PYCLOUDLIB_OCI_KEY_FILE_PATH"'
-      - name: Install Dependencies
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox distro-info-data devscripts
-      - name: Run integration Tests
-        env:
-          CLOUD_INIT_LOCAL_LOG_PATH: ${{ github.workspace }}/cloud_init_test_logs
-          PYCLOUDLIB_CONFIG: ${{ runner.temp }}/pycloudlib.toml
-          PYCLOUDLIB_OCI_CONFIG_FILE_PATH: ${{ runner.temp }}/oci/config
-          PYCLOUDLIB_OCI_KEY_FILE_PATH: ${{ runner.temp }}/oci/key.pem
-        run: |
-          tox -e integration-tests -- --junitxml="${{ github.workspace }}/junit-report.xml" --color=yes ${{ inputs.filter_tests || 'tests/integration_tests' }}
-      - name: Publish Test Report with Insights
-        if: ${{ always() }}
-        uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1.0.26
+        uses: ./.github/actions/setup-pycloudlib
         with:
-          report-path: '${{ github.workspace }}/junit-report.xml'
-          title: '${{ inputs.platform }}-${{ inputs.release }}-${{ inputs.image_type }}:${{ inputs.install_source }}'
-          integrations-config: |
-            {
-              "junit-to-ctrf": {
-                "enabled": true,
-                "action": "convert",
-                "options": {
-                  "output": "./ctrf-report.json",
-                  "toolname": "junit-to-ctrf",
-                  "useSuiteName": false,
-                  "env": {
-                    "appName": "my-app"
-                  }
-                }
-              }
-            }
-          summary-delta-report: true
-          insights-report: true
-          flaky-rate-report: true
-          slowest-report: true
-          upload-artifact: true
-          github-report: true
-          artifact-name: ctrf-report-${{ inputs.platform }}-${{ inputs.release }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          pycloudlib_config: ${{ runner.temp }}/pycloudlib.toml
+      - name: Install Dependencies
+        uses: ./.github/actions/install-deps
+      - name: Run integration Tests
+        uses: ./.github/actions/run-integration-tests
+        with:
+          filter_tests: ${{ inputs.filter_tests }}
+          local_log_path: ${{ github.workspace }}/cloud_init_test_logs
+          pycloudlib_config: ${{ runner.temp }}/pycloudlib.toml
+      - name: Publish Test Report
+        if: ${{ always() }}
+        uses: ./.github/actions/publish-test-report
+        with:
+          platform: ${{ inputs.platform }}
+          release: ${{ inputs.release }}
+          image_type: ${{ inputs.image_type }}
+          install_source: ${{ inputs.install_source }}
       - name: Upload failure artifacts
         if: ${{ failure() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: ./.github/actions/upload-failure-artifacts
         with:
-          name: failure-${{ github.job }}
           path: ${{ github.workspace }}/cloud_init_test_logs/
-          retention-days: 2
       - name: Clean pycloudlib
         if: ${{ always() }}
-        run: |
-          rm -f ${{ runner.temp }}/pycloudlib.toml
-          rm -rf ${{ runner.temp }}/oci
+        uses: ./.github/actions/clean-pycloudlib
