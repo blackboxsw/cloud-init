@@ -1,0 +1,13 @@
+name: Setup SSH
+description: Install SSH keys for cloud-init integration tests
+
+runs:
+  using: composite
+  steps:
+    - name: Setup SSH
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        sh -c 'printf "%s\n" "$SSH_PUBLIC_KEY" > ~/.ssh/cloudinit_id_rsa.pub'
+        # Dump secret using a subprocess to avoid accidental leaks when using set -x.
+        sh -c 'printf "%s\n" "$SSH_PRIVATE_KEY" | install -m 600 /dev/stdin ~/.ssh/cloudinit_id_rsa'

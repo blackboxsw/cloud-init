@@ -1,0 +1,17 @@
+name: Upload failure artifacts
+description: Upload cloud-init test logs on failure
+
+inputs:
+  path:
+    description: Path to upload as failure artifact
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Upload failure artifacts
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: failure-${{ github.job }}
+        path: ${{ inputs.path }}
+        retention-days: 2

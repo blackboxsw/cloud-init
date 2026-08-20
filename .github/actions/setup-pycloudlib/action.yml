@@ -1,0 +1,17 @@
+name: Setup pycloudlib
+description: Decode the pycloudlib TOML config to runner temp
+
+inputs:
+  pycloudlib_config:
+    description: Path to write the decoded pycloudlib TOML config
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pycloudlib
+      shell: bash
+      env:
+        PYCLOUDLIB_CONFIG: ${{ inputs.pycloudlib_config }}
+      run: |
+        sh -c 'echo "$REQUIRED_SECRET" | base64 -d > "$PYCLOUDLIB_CONFIG"'

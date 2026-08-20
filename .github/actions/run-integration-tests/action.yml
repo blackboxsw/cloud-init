@@ -1,0 +1,35 @@
+name: Run integration Tests
+description: Run cloud-init integration tests via tox
+
+inputs:
+  filter_tests:
+    description: Test filter expression (defaults to all integration tests)
+    required: false
+    default: ''
+  local_log_path:
+    description: Path for cloud-init test logs
+    required: true
+  pycloudlib_config:
+    description: Path to the pycloudlib TOML config
+    required: true
+  oci_config_path:
+    description: Path to the OCI config file (empty for non-OCI platforms)
+    required: false
+    default: ''
+  oci_key_path:
+    description: Path to the OCI key file (empty for non-OCI platforms)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Run integration Tests
+      shell: bash
+      env:
+        CLOUD_INIT_LOCAL_LOG_PATH: ${{ inputs.local_log_path }}
+        PYCLOUDLIB_CONFIG: ${{ inputs.pycloudlib_config }}
+        PYCLOUDLIB_OCI_CONFIG_FILE_PATH: ${{ inputs.oci_config_path }}
+        PYCLOUDLIB_OCI_KEY_FILE_PATH: ${{ inputs.oci_key_path }}
+      run: |
+        tox -e integration-tests -- --junitxml="${{ github.workspace }}/junit-report.xml" --color=yes ${{ inputs.filter_tests || 'tests/integration_tests' }}

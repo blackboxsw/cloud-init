@@ -1,0 +1,11 @@
+name: Clean pycloudlib
+description: Remove pycloudlib config and OCI credentials from runner temp
+
+runs:
+  using: composite
+  steps:
+    - name: Clean pycloudlib
+      shell: bash
+      run: |
+        rm -f ${{ runner.temp }}/pycloudlib.toml
+        rm -rf ${{ runner.temp }}/oci

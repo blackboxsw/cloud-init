@@ -1,0 +1,11 @@
+name: Install Dependencies
+description: Install test dependencies via apt
+
+runs:
+  using: composite
+  steps:
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox distro-info-data devscripts
