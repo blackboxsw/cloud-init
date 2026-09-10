@@ -21,9 +21,9 @@ it is recommended by `Ubuntu security team guidelines`_ to update the packages
 
 .. note::
 
-  Ubuntu cloud images enable unattended-upgrades by default, so this issue
-  resolves automatically as daily scheduled upgrades run. For images without
-  automated upgrades, follow this recommendation to update packages on first boot.
+  Some cloud images (such as Ubuntu) are configured to automatically receive
+  the latest security updates. Other images should use cloud-init to update
+  packages on first boot.
 
 .. code-block:: yaml
 
