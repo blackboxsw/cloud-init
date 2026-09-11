@@ -24,6 +24,6 @@ determined time for disclosure has arrived the following will occur:
   mitigations and where to obtain the fix
 * An announcement is made to [GitHub Discussions](https://github.com/canonical/cloud-init/discussions)
 
-## Downstream supported versions
+## Downstream CVE mitigation
 
-[Ubuntu ESM CVE policy](https://ubuntu.com/security/cves/about) is followed to determine when to resolve CVEs affecting [Ubuntu SRU supported releases](https://docs.cloud-init.io/en/latest/reference/ubuntu_stable_release_updates.html).
+- Ubuntu provides for CVE mitigation as part of the [Ubuntu Expanded Security Maintenance](https://docs.cloud-init.io/en/latest/reference/ubuntu_stable_release_updates.html#expanded-security-maintenance-esm-releases).
