@@ -26,4 +26,4 @@ determined time for disclosure has arrived the following will occur:
 
 ## Downstream supported versions
 
-[Ubuntu ESM CVE policy](https://ubuntu.com/security/cves/about) is followed to determine when to backport CVEs to [Ubuntu SRU supported releases](https://docs.cloud-init.io/en/latest/reference/ubuntu_stable_release_updates.html).
+[Ubuntu ESM CVE policy](https://ubuntu.com/security/cves/about) is followed to determine when to resolve CVEs affecting [Ubuntu SRU supported releases](https://docs.cloud-init.io/en/latest/reference/ubuntu_stable_release_updates.html).
