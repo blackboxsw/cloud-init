@@ -22,7 +22,6 @@ on:
 jobs:
   jammy-lxd_container:
     runs-on: ubuntu-latest
-    if: github.repository == 'canonical/cloud-init'
     permissions:
       # Least-privilege scopes required by ctrf-io/github-test-reporter:
       checks: write   # check-run reports
