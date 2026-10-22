@@ -22,7 +22,6 @@ on:
 jobs:
   resolute-gce:
     runs-on: ubuntu-latest
-    if: github.repository == 'canonical/cloud-init'
     permissions:
       # Least-privileged scopes required by ctrf-io/github-test-reporter:
       checks: write   # check-run reports
