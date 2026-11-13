@@ -31,7 +31,6 @@ jobs:
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy update
           sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
-          sudo snap install shfmt
 
       - name: Print version
         run: python3 --version
