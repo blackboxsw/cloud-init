@@ -1,0 +1,96 @@
+Description: Redact admin_pass from cloud-init query on OpenStack ConfigDrive
+ Redact plain-text root password for non-root users for OpenStack instances
+ launched with --use-config-drive and --admin-pass "mypass".
+
+ In cases where an OpenStack VM is launched with both config drive and an
+ admin-pass, the command cloud-init query potentially exposed that
+ admin_pass value to non-root users. Close this exposure by correctly
+ declaring admin_pass as a sensitive metadata key.
+
+ Credit: Kakeru Oi (GH: Martian028)
+ Credit: Shogo Fukuoka (GH: mozqnet)
+
+ CVE-2026-122155
+Author: Chad Smith <chad.smith@canonical.com>
+Applied-Upstream: https://github.com/canonical/cloud-init/commit/<TODO_HASH_WHEN_COMMITED>
+Bug: https://github.com/canonical/cloud-init-ghsa-wc3f-vmp9-4rp3
+Last-Update: 2026-11-13
+--- a/cloudinit/sources/DataSourceConfigDrive.py
++++ b/cloudinit/sources/DataSourceConfigDrive.py
+@@ -8,6 +8,7 @@
+ 
+ import logging
+ import os
++from typing import Tuple
+ 
+ from cloudinit import lifecycle, sources, subp, util
+ from cloudinit.event import EventScope, EventType
+@@ -34,6 +35,13 @@ class DataSourceConfigDrive(openstack.So
+ 
+     dsname = "ConfigDrive"
+ 
++    # Nova writes the instance admin password to meta_data.json on the config
++    # drive only; keep it out of the world-readable instance-data.json.
++    sensitive_metadata_keys: Tuple[str, ...] = (
++        sources.DataSource.sensitive_metadata_keys
++        + ("ds/meta_data/admin_pass",)
++    )
++
+     supported_update_events = {
+         EventScope.NETWORK: {
+             EventType.BOOT_NEW_INSTANCE,
+--- a/tests/unittests/sources/test_configdrive.py
++++ b/tests/unittests/sources/test_configdrive.py
+@@ -6,6 +6,7 @@ from copy import copy, deepcopy
+ 
+ from cloudinit import helpers, settings, util
+ from cloudinit.net import eni, network_state
++from cloudinit.sources import REDACT_SENSITIVE_VALUE
+ from cloudinit.sources import DataSourceConfigDrive as ds
+ from cloudinit.sources.helpers import openstack
+ from tests.unittests.helpers import CiTestCase, ExitStack, mock, populate_dir
+@@ -666,6 +667,44 @@ class TestConfigDriveDataSource(CiTestCa
+                     self.assertEqual(True, cfg_ds.get_data())
+         self.assertEqual("config-disk (/dev/anything)", cfg_ds.subplatform)
+ 
++    @mock.patch(M_PATH + "on_first_boot")
++    def test_get_data_redacts_admin_pass_in_public_instance_data(
++        self, m_on_first_boot, paths, tmp_path
++    ):
++        """admin_pass from config-drive is redacted from instance-data.json.
++
++        Nova writes the admin password to meta_data.json on the config drive
++        of instances launched with --use-config-drive and --admin-pass. That
++        password must be redacted from the world-readable instance-data.json
++        while remaining in the root-readable instance-data-sensitive.json.
++        """
++        admin_pass = "sekrit-admin-pass"
++        ostack_meta = copy(OSTACK_META)
++        ostack_meta["admin_pass"] = admin_pass
++        files = copy(CFG_DRIVE_FILES_V2)
++        for version in ("2012-08-10", "2015-10-15", "latest"):
++            files["openstack/%s/meta_data.json" % version] = json.dumps(
++                ostack_meta
++            )
++        populate_dir(str(tmp_path), files)
++        cfg_ds = ds.DataSourceConfigDrive(settings.CFG_BUILTIN, None, paths)
++        cfg_ds.seed_dir = str(tmp_path)
++        assert cfg_ds.get_data()
++        assert admin_pass == cfg_ds.metadata["admin_pass"]
++
++        public_json = util.load_json(
++            util.load_text_file(paths.get_runpath("instance_data"))
++        )
++        assert "ds/meta_data/admin_pass" in public_json["sensitive_keys"]
++        assert (
++            REDACT_SENSITIVE_VALUE
++            == public_json["ds"]["meta_data"]["admin_pass"]
++        )
++        sensitive_json = util.load_json(
++            util.load_text_file(paths.get_runpath("instance_data_sensitive"))
++        )
++        assert admin_pass == sensitive_json["ds"]["meta_data"]["admin_pass"]
++
+ 
+ @mock.patch(
+     "cloudinit.net.is_openvswitch_internal_interface",
