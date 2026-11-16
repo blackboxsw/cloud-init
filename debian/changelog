@@ -1,3 +1,17 @@
+cloud-init (24.4.1-0ubuntu0~20.04.3+esm3) UNRELEASED; urgency=medium
+
+  * SECURITY UPDATE: Redact admin_pass field from cloud-init query
+    In cases where an OpenStack VM is launched with both config drive and an
+    admin-pass, the command cloud-init query potentially exposed that
+    admin_pass value to non-root users.
+
+    - cherry-pick c77dec11: fix(openstack): redact admin_pass field from
+      cloud-init query (CVE-2026-122155)
+    - d/postinst: Provide package upgrade redact of admin_pass when present
+      in configdrive instance-data.json
+
+ -- Chad Smith <chad.smith@canonical.com>  Mon, 16 Nov 2026 20:19:38 +0000
+
 cloud-init (24.4.1-0ubuntu0~20.04.3+esm2) focal-security; urgency=medium
 
   * d/p/backport-a97e7466-feat-Fix-import-error-6926: fix libimport.util
