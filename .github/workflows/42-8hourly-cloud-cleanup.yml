@@ -43,7 +43,7 @@ jobs:
   check:
     name: cloud-cleanup-check-config
     runs-on: ubuntu-latest
-    if: github.repository == 'canonical/cloud-init'
+    if: github.repository == 'blackboxsw/cloud-init'
     timeout-minutes: 5
     env:
       PYCLOUDLIB_TOML_B64: ${{ secrets.PYCLOUDLIB_TOML_B64 }}
@@ -79,7 +79,7 @@ jobs:
     name: cloud-cleanup-azure
     runs-on: ubuntu-latest
     needs: check
-    if: github.repository == 'canonical/cloud-init' && (github.event_name == 'schedule' || inputs.run_azure)
+    if: github.repository == 'blackboxsw/cloud-init' && (github.event_name == 'schedule' || inputs.run_azure)
     timeout-minutes: 90
     env:
       HOURS_OLD: ${{ inputs.hours_old || 96 }}
@@ -144,6 +144,7 @@ jobs:
           }
           # shellcheck disable=SC2086  # one resource group name per iteration
           for rg in $rg_list; do
+            echo "INFO: processing resource group: $rg"
             # Delete all the stale instances, regardless of the resource
             # group they're in (including the allowlisted groups above).
             # Fetch the id and the creation time of each VM in a single
