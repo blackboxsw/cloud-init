@@ -407,6 +407,16 @@ fix_openstack_config_drive_redact_password() {
     if grep -q admin_pass /run/cloud-init/instance-data.json; then
         echo "INFO: redacting exposed admin_pass for non-root users"
         echo "INFO: This system was impacted by CVE-2026-122155. You may want to change your admin_pass on this system."
+        if [ -d /etc/update-motd.d ]; then
+            cat > /etc/update-motd.d/CVE-2026-122155 <<EOF
+#!/bin/bash
+echo ============================================================
+echo cloud-init mitigated CVE-2026-122155 during package upgrade.
+echo We recommend changing the admin_pass on this system.
+echo Details at https://nvd.nist.gov/vuln/detail/cve-2026-122155.
+echo ============================================================
+EOF
+        chmod 755 /etc/update-motd.d/CVE-2026-122155
         # Load cached datasource, and rewrite instance-data.json which
         # redacts any sensitive fields.
         python3 -c 'from cloudinit.sources import pkl_load; pkl_load("/var/lib/cloud/instance/obj.pkl").persist_instance_data()'
